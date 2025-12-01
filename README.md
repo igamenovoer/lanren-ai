@@ -58,26 +58,42 @@ See [`context/design/packs/common-pack.md`](context/design/packs/common-pack.md)
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────┐
-│  User double-clicks Install.vbs         │
-│  └─> UAC elevation (familiar prompt)    │
-└─────────────────────────────────────────┘
-                  ↓
-┌─────────────────────────────────────────┐
-│  PowerShell Installer Engine            │
-│  - Loads pack definitions (JSON)        │
-│  - Shows interactive pack selection     │
-│  - Orchestrates installation            │
-└─────────────────────────────────────────┘
-                  ↓
-┌─────────────────────────────────────────┐
-│  Installation Methods                   │
-│  - WinGet packages                      │
-│  - VSCode extensions                    │
-│  - Custom scripts (uv, pip)             │
-│  - Configuration files (MCP servers)    │
-└─────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    User([User double-clicks<br/>Install-DevTools.vbs]) --> UAC[VBScript Launcher<br/>Requests UAC Elevation]
+
+    UAC --> Engine[PowerShell Installer Engine]
+
+    subgraph Engine_Tasks["Installer Engine Tasks"]
+        direction TB
+        Load[Load pack definitions<br/>from JSON files]
+        Select[Show interactive<br/>pack selection menu]
+        Orchestrate[Orchestrate installation<br/>with error handling]
+
+        Load --> Select
+        Select --> Orchestrate
+    end
+
+    Engine --> Engine_Tasks
+
+    Engine_Tasks --> Methods
+
+    subgraph Methods["Installation Methods"]
+        direction LR
+        WinGet[WinGet<br/>Packages]
+        VSCode[VSCode<br/>Extensions]
+        Custom[Custom Scripts<br/>uv, pip]
+        Config[Configuration Files<br/>MCP servers]
+    end
+
+    Methods --> Complete([Installation Complete])
+
+    style User fill:#4caf50,color:#fff
+    style UAC fill:#2196f3,color:#fff
+    style Engine fill:#ff9800,color:#fff
+    style Engine_Tasks fill:#fff3e0
+    style Methods fill:#e8f5e9
+    style Complete fill:#4caf50,color:#fff
 ```
 
 See [`context/design/design-of-ps1-installer.md`](context/design/design-of-ps1-installer.md) for complete architecture with Mermaid diagrams.
@@ -94,21 +110,34 @@ See [`context/design/design-of-ps1-installer.md`](context/design/design-of-ps1-i
 
 ## Project Structure
 
-```
-lanren-ai/
-├── README.md                    # This file
-├── context/                     # Knowledge base (magic-context pattern)
-│   ├── design/                  # Architecture and pack specifications
-│   │   ├── packs/               # Tool pack definitions
-│   │   │   └── common-pack.md   # Common development tools spec
-│   │   └── design-of-ps1-installer.md  # System architecture
-│   ├── hints/                   # Implementation guides
-│   │   └── howto-create-msi-installer-for-dev-tools.md
-│   └── [other context dirs...]  # See magic-context pattern
-└── installer/                   # (Coming soon) Actual installer files
-    ├── Install-DevTools.vbs
-    ├── InstallEngine.ps1
-    └── packs/*.json
+```mermaid
+graph TD
+    Root[lanren-ai/]
+
+    Root --> README[README.md<br/><i>This file</i>]
+
+    Root --> Context[context/<br/><i>Knowledge base</i>]
+    Context --> Design[design/]
+    Design --> Packs[packs/]
+    Packs --> CommonPack[common-pack.md<br/><i>Common development tools spec</i>]
+    Design --> DesignDoc[design-of-ps1-installer.md<br/><i>System architecture</i>]
+
+    Context --> Hints[hints/]
+    Hints --> HowTo[howto-create-msi-installer-for-dev-tools.md]
+
+    Context --> Other[other context dirs...<br/><i>See magic-context pattern</i>]
+
+    Root --> Installer[installer/<br/><i>Coming soon</i>]
+    Installer --> VBS[Install-DevTools.vbs]
+    Installer --> PS1[InstallEngine.ps1]
+    Installer --> PacksJSON[packs/*.json]
+
+    style Root fill:#e3f2fd
+    style Context fill:#fff3e0
+    style Design fill:#e8f5e9
+    style Packs fill:#f3e5f5
+    style Hints fill:#fce4ec
+    style Installer fill:#fff9c4,stroke-dasharray: 5 5
 ```
 
 ## Features
