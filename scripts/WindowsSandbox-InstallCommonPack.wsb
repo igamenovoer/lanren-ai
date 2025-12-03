@@ -1,0 +1,21 @@
+<Configuration>
+  <!-- Enable GPU and networking so installers and CLIs can reach the internet -->
+  <VGpu>Enable</VGpu>
+  <Networking>Enable</Networking>
+
+  <!-- Map this repo from the host into the sandbox -->
+  <!-- NOTE: If you move the repo, update HostFolder accordingly. -->
+  <MappedFolders>
+    <MappedFolder>
+      <HostFolder>D:\code\lanren-ai</HostFolder>
+      <SandboxFolder>C:\lanren-ai</SandboxFolder>
+      <ReadOnly>false</ReadOnly>
+    </MappedFolder>
+  </MappedFolders>
+
+  <!-- On logon, run the common-pack installer inside the sandbox -->
+  <LogonCommand>
+    <Command>powershell.exe -ExecutionPolicy Bypass -NoProfile -File C:\lanren-ai\scripts\install-common-pack.ps1 -NonInteractive</Command>
+  </LogonCommand>
+</Configuration>
+
