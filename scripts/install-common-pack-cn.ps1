@@ -386,32 +386,6 @@ function Install-Markitdown {
     }
 }
 
-function Invoke-ClaudeSkipLoginHelper {
-    $scriptDir = $PSScriptRoot
-    if (-not $scriptDir) {
-        $scriptDir = Split-Path -Parent $PSCommandPath -ErrorAction SilentlyContinue
-    }
-    if (-not $scriptDir) {
-        $scriptDir = (Get-Location).Path
-    }
-
-    $repoRoot = Split-Path -Parent $scriptDir
-    $helperPath = Join-Path $repoRoot "quick-tools\claude\skip-cc-login.ps1"
-
-    if (-not (Test-Path $helperPath)) {
-        Write-Log "Claude skip-login helper script not found at $helperPath. Skipping." "WARN"
-        return
-    }
-
-    Write-Log "Running Claude skip-login helper script: $helperPath ..." "INFO"
-    try {
-        & $helperPath
-        Write-Log "Claude skip-login helper script completed." "INFO"
-    } catch {
-        Write-Log "Claude skip-login helper script failed: $($_.Exception.Message)" "WARN"
-    }
-}
-
 function Show-Summary {
     Write-Host ""
     Write-Host "This script will attempt to install the following tools from the Common AI Development Tools pack (CN-optimized):"
@@ -421,7 +395,6 @@ function Show-Summary {
     Write-Host " - PowerShell 7 (pwsh)"
     Write-Host " - Node.js (and npm), with optional npm China mirror"
     Write-Host " - Bun JavaScript runtime (via winget), with optional Tavily MCP and Context7 MCP pre-install via bunx"
-    Write-Host " - Bun JavaScript runtime (via winget)"
     Write-Host " - Codex CLI (via npm, experimental on Windows)"
     Write-Host " - uv (Python package and environment manager) with China PyPI mirror"
     Write-Host " - pixi (cross-platform package manager)"
@@ -461,7 +434,6 @@ try {
     Install-Yq
     Install-Pandoc
     Install-Markitdown
-    Invoke-ClaudeSkipLoginHelper
 } catch {
     Write-Log "Unexpected error during CN pack installation: $($_.Exception.Message)" "ERROR"
 }
