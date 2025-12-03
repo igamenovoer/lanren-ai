@@ -226,6 +226,29 @@ function Install-NodeJS {
     }
 }
 
+function Install-Bun {
+    Write-Log "Installing Bun JavaScript runtime..." "INFO"
+    $result = Invoke-WinGetInstall -Id "Oven-sh.Bun" -DisplayName "Bun"
+
+    if (-not $result) {
+        Write-Log "Bun installation via winget failed or was skipped." "WARN"
+    }
+}
+
+function Install-PowerShell7 {
+    if (Test-CommandExists -Name "pwsh") {
+        Write-Log "PowerShell 7 (pwsh) already available; skipping installation." "INFO"
+        return
+    }
+
+    Write-Log "Installing PowerShell 7 (pwsh)..." "INFO"
+    $result = Invoke-WinGetInstall -Id "Microsoft.PowerShell" -DisplayName "PowerShell 7"
+
+    if (-not $result) {
+        Write-Log "PowerShell 7 installation via winget failed or was skipped." "WARN"
+    }
+}
+
 function Configure-NpmMirror {
     if (-not (Test-CommandExists -Name "npm")) {
         Write-Log "npm not available; skipping npm mirror configuration." "WARN"
@@ -261,6 +284,44 @@ function Install-CodexCLI {
         Write-Log "Codex CLI installation command completed." "INFO"
     } catch {
         Write-Log "Codex CLI installation failed: $($_.Exception.Message)" "WARN"
+    }
+}
+
+function Install-TavilyMcpWithBun {
+    if (-not (Test-CommandExists -Name "bunx")) {
+        Write-Log "bunx is not available. Skipping Tavily MCP pre-installation. Install Bun first if you plan to use Tavily MCP locally." "WARN"
+        return
+    }
+
+    if (-not (Ensure-Confirmation -Message "Pre-install Tavily MCP server package via bunx (tavily-mcp@latest)?")) {
+        return
+    }
+
+    Write-Log "Pre-installing Tavily MCP via 'bunx tavily-mcp@latest --help'..." "INFO"
+    try {
+        bunx tavily-mcp@latest --help | Out-Null
+        Write-Log "Tavily MCP package is available via bun (cached by bunx)." "INFO"
+    } catch {
+        Write-Log "Tavily MCP bunx warm-up failed: $($_.Exception.Message)" "WARN"
+    }
+}
+
+function Install-Context7McpWithBun {
+    if (-not (Test-CommandExists -Name "bunx")) {
+        Write-Log "bunx is not available. Skipping Context7 MCP pre-installation. Install Bun first if you plan to use Context7 MCP locally." "WARN"
+        return
+    }
+
+    if (-not (Ensure-Confirmation -Message "Pre-install Context7 MCP server package via bunx (@upstash/context7-mcp@latest)?")) {
+        return
+    }
+
+    Write-Log "Pre-installing Context7 MCP via 'bunx -y @upstash/context7-mcp@latest --help'..." "INFO"
+    try {
+        bunx -y @upstash/context7-mcp@latest --help | Out-Null
+        Write-Log "Context7 MCP package is available via bun (cached by bunx)." "INFO"
+    } catch {
+        Write-Log "Context7 MCP bunx warm-up failed: $($_.Exception.Message)" "WARN"
     }
 }
 
@@ -357,7 +418,10 @@ function Show-Summary {
     Write-Host " - Visual Studio Code"
     Write-Host " - VSCode extensions: Cline, Kilo Code, Codex, Claude Code, Python, Markdown Preview Enhanced"
     Write-Host " - Claude Code CLI"
+    Write-Host " - PowerShell 7 (pwsh)"
     Write-Host " - Node.js (and npm), with optional npm China mirror"
+    Write-Host " - Bun JavaScript runtime (via winget), with optional Tavily MCP and Context7 MCP pre-install via bunx"
+    Write-Host " - Bun JavaScript runtime (via winget)"
     Write-Host " - Codex CLI (via npm, experimental on Windows)"
     Write-Host " - uv (Python package and environment manager) with China PyPI mirror"
     Write-Host " - pixi (cross-platform package manager)"
@@ -383,7 +447,11 @@ try {
 
     Install-VisualStudioCode
     Install-VSCodeExtensions
+    Install-PowerShell7
     Install-NodeJS
+    Install-Bun
+    Install-TavilyMcpWithBun
+    Install-Context7McpWithBun
     Configure-NpmMirror
     Install-ClaudeCodeCLI
     Install-CodexCLI

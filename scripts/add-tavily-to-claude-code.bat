@@ -1,0 +1,37 @@
+@echo off
+setlocal
+
+:: add-tavily-to-claude-code.bat
+:: Windows batch launcher for:
+::   add-tavily-to-claude-code.ps1
+:: Adds the Tavily MCP server to Claude Code CLI (user scope),
+:: using Bun (bunx) as the MCP runner.
+
+set "SCRIPT_DIR=%~dp0"
+set "PS1_FILE=%SCRIPT_DIR%add-tavily-to-claude-code.ps1"
+
+if not exist "%PS1_FILE%" (
+    echo [add-tavily-to-claude-code.bat] ERROR: PowerShell script not found:
+    echo   "%PS1_FILE%"
+    echo.
+    pause
+    endlocal & exit /b 1
+)
+
+echo.
+echo Adding Tavily MCP server to Claude Code (user scope)...
+echo.
+
+powershell -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%PS1_FILE%"
+set "EXITCODE=%ERRORLEVEL%"
+
+echo.
+if not "%EXITCODE%"=="0" (
+    echo Tavily MCP setup finished with errors. Exit code: %EXITCODE%
+) else (
+    echo Tavily MCP setup completed successfully.
+)
+
+echo.
+pause
+endlocal & exit /b %EXITCODE%

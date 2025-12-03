@@ -2,53 +2,41 @@
 setlocal
 
 :: add-custom-api-for-cc.bat
-:: Windows batch wrapper for the Bash script:
-::   add-custom-api-for-cc.sh
-:: It forwards all arguments to the Bash script so you can run
-:: the Linux-style helper from a double-click or cmd.exe.
+:: Windows batch launcher for the PowerShell helper:
+::   add-custom-api-for-cc.ps1
+:: It forwards all arguments to the PowerShell script, which then
+:: invokes the underlying Bash helper script.
 ::
-:: Requirements:
-::   - Git Bash or another Bash implementation available on Windows
-::     (e.g. "C:\Program Files\Git\bin\bash.exe" or bash in PATH)
+:: Note: This helper only modifies files in your user profile and
+:: does not require administrator privileges.
 
 set "SCRIPT_DIR=%~dp0"
-set "BASH_SCRIPT=%SCRIPT_DIR%add-custom-api-for-cc.sh"
+set "PS1_FILE=%SCRIPT_DIR%add-custom-api-for-cc.ps1"
 
-if not exist "%BASH_SCRIPT%" (
-    echo [%~nx0] ERROR: Cannot find Bash script:
-    echo   "%BASH_SCRIPT%"
-    echo Please ensure add-custom-api-for-cc.sh exists next to this .bat file.
+if not exist "%PS1_FILE%" (
+    echo [%~nx0] ERROR: PowerShell script not found:
+    echo   "%PS1_FILE%"
+    echo.
+    pause
     endlocal & exit /b 1
 )
 
-set "BASH_EXE="
-
-:: Prefer Git Bash if installed in the default location
-if exist "%ProgramFiles%\Git\bin\bash.exe" (
-    set "BASH_EXE=%ProgramFiles%\Git\bin\bash.exe"
-) else if exist "%ProgramFiles(x86)%\Git\bin\bash.exe" (
-    set "BASH_EXE=%ProgramFiles(x86)%\Git\bin\bash.exe"
-)
-
-:: Fallback: any bash in PATH
-if not defined BASH_EXE (
-    where bash >nul 2>&1
-    if %ERRORLEVEL% EQU 0 (
-        set "BASH_EXE=bash"
-    )
-)
-
-if not defined BASH_EXE (
-    echo [%~nx0] ERROR: Could not find a usable 'bash' on this system.
-    echo Install Git for Windows (which includes Git Bash), or run:
-    echo   bash "%BASH_SCRIPT%" [args...]
-    endlocal & exit /b 1
-)
-
-echo Running add-custom-api-for-cc.sh via "%BASH_EXE%"...
 echo.
-"%BASH_EXE%" "%BASH_SCRIPT%" %*
+echo Running Claude Code custom-API helper...
+echo.
+
+:: Run the PowerShell helper with execution policy bypass so that
+:: the .ps1 script can run even if scripts are restricted.
+powershell -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%PS1_FILE%" %*
 set "EXITCODE=%ERRORLEVEL%"
 
-endlocal & exit /b %EXITCODE%
+echo.
+if not "%EXITCODE%"=="0" (
+    echo Helper finished with errors. Exit code: %EXITCODE%
+) else (
+    echo Helper completed successfully.
+)
 
+echo.
+pause
+endlocal & exit /b %EXITCODE%
