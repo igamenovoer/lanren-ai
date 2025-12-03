@@ -9,7 +9,7 @@
 
 ## Overview
 
-This document describes the design of a generic, extensible PowerShell-based installer system that allows users to install predefined "packs" of development tools via a simple double-click experience. The system uses VBScript wrappers to bypass execution policy restrictions and provides a GUI for pack selection.
+This document describes the design of a generic, extensible PowerShell-based installer system that allows users to install predefined "packs" of development tools via a simple double-click experience. The system uses batch (`.bat`) launchers to bypass execution policy restrictions and provides a simple console-based pack selection UI.
 
 ### Goals
 
@@ -36,7 +36,7 @@ This document describes the design of a generic, extensible PowerShell-based ins
 ```mermaid
 graph TB
     subgraph UI["User Interface Layer"]
-        Launcher[Launcher.vbs<br/>Double-click entry point]
+        Launcher[Install-DevTools.bat<br/>Double-click entry point]
         Menu[Interactive Menu PS1<br/>- Pack Selection<br/>- Confirmation Dialog]
         Launcher --> Menu
     end
@@ -77,7 +77,7 @@ graph TB
 
 ### 1. Launcher Component
 
-**File**: `Install-DevTools.vbs`
+**File**: `Install-DevTools.bat`
 
 **Responsibilities**:
 - Entry point for user (double-click target)
@@ -85,34 +85,42 @@ graph TB
 - Launch PowerShell installer with execution policy bypass
 - Display initial confirmation dialog
 
-**Implementation**:
+**Implementation (batch)**:
 
-```vbscript
-' VBScript launcher - handles UAC elevation and execution policy bypass
-' Launches the main PowerShell installer
+```bat
+@echo off
+setlocal
 
-Set objShell = CreateObject("Shell.Application")
-Set fso = CreateObject("Scripting.FileSystemObject")
+rem Batch launcher - handles UAC elevation and execution policy bypass
+rem Launches the main PowerShell installer script
 
-scriptDir = fso.GetParentFolderName(WScript.ScriptFullName)
-ps1File = scriptDir & "\InstallEngine.ps1"
+set "SCRIPT_DIR=%~dp0"
+set "PS1_FILE=%SCRIPT_DIR%InstallEngine.ps1"
 
-' Verify PowerShell script exists
-If Not fso.FileExists(ps1File) Then
-    MsgBox "Error: InstallEngine.ps1 not found!", vbCritical
-    WScript.Quit 1
-End If
+net session >nul 2>&1
+if %errorlevel% neq 0 (
+    echo Requesting administrative privileges...
+    powershell -NoLogo -NoProfile -Command "Start-Process -FilePath '%~f0' -Verb RunAs"
+    exit /b
+)
 
-' Launch with elevation and execution policy bypass
-objShell.ShellExecute "powershell.exe", _
-    "-ExecutionPolicy Bypass -NoProfile -File """ & ps1File & """", _
-    "", "runas", 1
+if not exist "%PS1_FILE%" (
+    echo Error: InstallEngine.ps1 not found:
+    echo   "%PS1_FILE%"
+    pause
+    exit /b 1
+)
+
+powershell -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%PS1_FILE%"
+set "EXITCODE=%ERRORLEVEL%"
+endlocal & exit /b %EXITCODE%
 ```
 
 **Design Decisions**:
-- VBScript chosen for maximum compatibility (all Windows versions)
+- Batch chosen for simplicity and familiarity on Windows
+- Execution policy bypass handled via PowerShell invocation flags
 - Minimal logic - all intelligence in PowerShell layer
-- Graceful error handling for missing files
+- Graceful error handling for missing files and elevation failures
 
 ---
 
@@ -445,7 +453,7 @@ function Show-PackSelectionMenu {
 graph TD
     Root[installer/]
 
-    Root --> VBS[Install-DevTools.vbs<br/><i>VBScript launcher</i>]
+    Root --> BAT[Install-DevTools.bat<br/><i>Batch launcher (.bat)</i>]
     Root --> Engine[InstallEngine.ps1<br/><i>Main installer engine</i>]
     Root --> README[README.md<br/><i>User documentation</i>]
 
@@ -489,8 +497,8 @@ graph TD
 
 ```mermaid
 flowchart TD
-    Start([User double-clicks<br/>Install-DevTools.vbs]) --> UAC[VBScript requests<br/>UAC elevation]
-    UAC --> Launch[PowerShell launches with<br/>execution policy bypass]
+    Start([User double-clicks<br/>Install-DevTools.bat]) --> UAC[Batch launcher requests<br/>UAC elevation via PowerShell]
+    UAC --> Launch[PowerShell launches with<br/>ExecutionPolicy Bypass]
     Launch --> Init[InstallEngine.ps1 starts]
 
     subgraph Phase1["Phase 1: Initialization"]
@@ -1116,7 +1124,7 @@ $results = $jobs | Wait-Job | Receive-Job
 ### Code Signing
 
 - Sign PowerShell scripts for enterprise distribution
-- Sign VBScript launcher (optional, but recommended)
+- (Optional) Sign batch launcher for improved trust on locked-down environments
 
 ### Input Validation
 
@@ -1146,7 +1154,7 @@ $results = $jobs | Wait-Job | Receive-Job
 
 ```
 DevToolsInstaller-v1.0.0.zip
-├── Install-DevTools.vbs
+├── Install-DevTools.bat
 ├── InstallEngine.ps1
 ├── README.md
 ├── LICENSE.txt
@@ -1164,7 +1172,7 @@ DevToolsInstaller-v1.0.0.zip
 # Installation Instructions
 
 1. Extract the ZIP file to a folder (e.g., C:\DevToolsInstaller)
-2. Double-click `Install-DevTools.vbs`
+2. Double-click `Install-DevTools.bat`
 3. When UAC prompts, click "Yes"
 4. Select the packs you want to install
 5. Confirm installation
