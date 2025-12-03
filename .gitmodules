@@ -2,3 +2,6 @@
 	path = magic-context
 	url = git@github.com:igamenovoer/magic-context.git
 	branch = main
+[submodule "quick-tools"]
+	path = quick-tools
+	url = https://github.com/igamenovoer/quick-tools.git

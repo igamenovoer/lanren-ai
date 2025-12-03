@@ -12,12 +12,13 @@ function New-LogFile {
     if (-not $scriptDir) {
         $scriptDir = (Get-Location).Path
     }
+
     $logDir = Join-Path $scriptDir "logs"
     if (-not (Test-Path $logDir)) {
         New-Item -ItemType Directory -Path $logDir | Out-Null
     }
     $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
-    Join-Path $logDir "install-common-pack_$timestamp.log"
+    Join-Path $logDir "install-common-pack-cn_$timestamp.log"
 }
 
 $Global:LogFile = New-LogFile
@@ -54,6 +55,25 @@ function Test-CommandExists {
     $null -ne $cmd
 }
 
+function Ensure-Confirmation {
+    param(
+        [string]$Message
+    )
+
+    if ($NonInteractive) {
+        return $true
+    }
+
+    Write-Host ""
+    $answer = Read-Host "$Message (Y/N)"
+    if ($answer -match "^[Yy]") {
+        return $true
+    }
+
+    Write-Log "User chose not to continue: $Message" "WARN"
+    return $false
+}
+
 function Ensure-WinGet {
     if (Test-CommandExists -Name "winget") {
         return $true
@@ -84,6 +104,31 @@ function Ensure-WinGet {
     return $false
 }
 
+function Configure-WinGetMirror {
+    if (-not (Test-CommandExists -Name "winget")) {
+        Write-Log "winget not available; skipping WinGet mirror configuration." "WARN"
+        return
+    }
+
+    if (-not (Ensure-Confirmation -Message "WinGet is available. Switch WinGet source to USTC mirror (https://mirrors.ustc.edu.cn/winget-source)?")) {
+        return
+    }
+
+    Write-Log "Switching WinGet source to USTC mirror..." "INFO"
+    try {
+        winget source remove winget -y 2>$null
+    } catch {
+        # ignore errors removing existing source
+    }
+
+    try {
+        winget source add winget https://mirrors.ustc.edu.cn/winget-source --trust-level trusted
+        Write-Log "WinGet source configured to USTC mirror." "INFO"
+    } catch {
+        Write-Log "Failed to configure WinGet mirror: $($_.Exception.Message)" "WARN"
+    }
+}
+
 function Invoke-WinGetInstall {
     param(
         [Parameter(Mandatory = $true)]
@@ -93,8 +138,8 @@ function Invoke-WinGetInstall {
 
     if (-not (Test-CommandExists -Name "winget")) {
         if (-not (Ensure-WinGet)) {
-        Write-Log "winget is not available. Install the Windows App Installer and try again." "ERROR"
-        return $false
+            Write-Log "winget is not available. Install the Windows App Installer and try again." "ERROR"
+            return $false
         }
     }
 
@@ -120,25 +165,6 @@ function Invoke-WinGetInstall {
     return $true
 }
 
-function Ensure-Confirmation {
-    param(
-        [string]$Message
-    )
-
-    if ($NonInteractive) {
-        return $true
-    }
-
-    Write-Host ""
-    $answer = Read-Host "$Message (Y/N)"
-    if ($answer -match "^[Yy]") {
-        return $true
-    }
-
-    Write-Log "User chose not to continue: $Message" "WARN"
-    return $false
-}
-
 function Install-VisualStudioCode {
     Write-Log "Installing Visual Studio Code..." "INFO"
     Invoke-WinGetInstall -Id "Microsoft.VisualStudioCode" -DisplayName "Visual Studio Code" | Out-Null
@@ -159,7 +185,7 @@ function Install-VSCodeExtensions {
         return
     }
 
-    Write-Log "Installing VSCode extensions from common pack..." "INFO"
+    Write-Log "Installing VSCode extensions from CN common pack..." "INFO"
 
     foreach ($ext in $extensions) {
         try {
@@ -186,6 +212,25 @@ function Install-NodeJS {
     }
 }
 
+function Configure-NpmMirror {
+    if (-not (Test-CommandExists -Name "npm")) {
+        Write-Log "npm not available; skipping npm mirror configuration." "WARN"
+        return
+    }
+
+    if (-not (Ensure-Confirmation -Message "npm detected. Switch npm registry to China mirror (https://registry.npmmirror.com/) globally?")) {
+        return
+    }
+
+    Write-Log "Setting npm registry to https://registry.npmmirror.com/ ..." "INFO"
+    try {
+        npm config set registry https://registry.npmmirror.com/ --global
+        Write-Log "npm registry configured to https://registry.npmmirror.com/." "INFO"
+    } catch {
+        Write-Log "Failed to configure npm mirror: $($_.Exception.Message)" "WARN"
+    }
+}
+
 function Install-CodexCLI {
     if (-not (Test-CommandExists -Name "npm")) {
         Write-Log "npm is not available. Skipping Codex CLI installation. Install Node.js and npm first." "WARN"
@@ -205,10 +250,18 @@ function Install-CodexCLI {
     }
 }
 
+function Configure-UvMirror {
+    $mirror = "https://pypi.tuna.tsinghua.edu.cn/simple"
+    Write-Log "Configuring uv to use Python package mirror: $mirror" "INFO"
+    $env:UV_DEFAULT_INDEX = $mirror
+}
+
 function Install-Uv {
-    if (-not (Ensure-Confirmation -Message "Install uv (Python package and environment manager) using remote script from astral.sh?")) {
+    if (-not (Ensure-Confirmation -Message "Install uv (Python package and environment manager) using remote script from astral.sh, configured to use a China PyPI mirror?")) {
         return
     }
+
+    Configure-UvMirror
 
     Write-Log "Installing uv via remote PowerShell script..." "INFO"
     try {
@@ -249,7 +302,7 @@ function Install-Markitdown {
         return
     }
 
-    Write-Log "Preparing markitdown via uv tool run..." "INFO"
+    Write-Log "Preparing markitdown via uv tool run (may use configured China PyPI mirror)..." "INFO"
     try {
         uv tool run markitdown-mcp -- --help | Out-Null
         Write-Log "markitdown tool invocation completed." "INFO"
@@ -260,13 +313,13 @@ function Install-Markitdown {
 
 function Show-Summary {
     Write-Host ""
-    Write-Host "This script will attempt to install the following tools from the Common AI Development Tools pack:"
+    Write-Host "This script will attempt to install the following tools from the Common AI Development Tools pack (CN-optimized):"
     Write-Host " - Visual Studio Code"
     Write-Host " - VSCode extensions: Cline, Kilo Code, Codex, Claude Code, Python, Markdown Preview Enhanced"
     Write-Host " - Claude Code CLI"
-    Write-Host " - Node.js (and npm)"
+    Write-Host " - Node.js (and npm), with optional npm China mirror"
     Write-Host " - Codex CLI (via npm, experimental on Windows)"
-    Write-Host " - uv (Python package and environment manager)"
+    Write-Host " - uv (Python package and environment manager) with China PyPI mirror"
     Write-Host " - pixi (cross-platform package manager)"
     Write-Host " - jq (JSON processor)"
     Write-Host " - yq (YAML processor)"
@@ -277,18 +330,22 @@ function Show-Summary {
 
 Show-Summary
 
-if (-not (Ensure-Confirmation -Message "Proceed with installation of the Common AI Development Tools pack")) {
-    Write-Log "User cancelled pack installation." "WARN"
+if (-not (Ensure-Confirmation -Message "Proceed with installation of the Common AI Development Tools pack (CN-optimized)?")) {
+    Write-Log "User cancelled CN common pack installation." "WARN"
     exit 0
 }
 
-Write-Log "Starting Common AI Development Tools pack installation." "INFO"
+Write-Log "Starting Common AI Development Tools pack (CN-optimized) installation." "INFO"
 
 try {
+    Ensure-WinGet | Out-Null
+    Configure-WinGetMirror
+
     Install-VisualStudioCode
     Install-VSCodeExtensions
     Install-ClaudeCodeCLI
     Install-NodeJS
+    Configure-NpmMirror
     Install-CodexCLI
     Install-Uv
     Install-Pixi
@@ -297,7 +354,7 @@ try {
     Install-Pandoc
     Install-Markitdown
 } catch {
-    Write-Log "Unexpected error during installation: $($_.Exception.Message)" "ERROR"
+    Write-Log "Unexpected error during CN pack installation: $($_.Exception.Message)" "ERROR"
 }
 
-Write-Log "Common AI Development Tools pack installation script completed." "INFO"
+Write-Log "Common AI Development Tools pack (CN-optimized) installation script completed." "INFO"

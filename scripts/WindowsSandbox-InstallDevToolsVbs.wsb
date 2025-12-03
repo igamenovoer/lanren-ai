@@ -1,0 +1,17 @@
+<Configuration>
+  <VGpu>Enable</VGpu>
+  <Networking>Enable</Networking>
+
+  <MappedFolders>
+    <MappedFolder>
+      <HostFolder>D:\code\lanren-ai</HostFolder>
+      <SandboxFolder>C:\lanren-ai</SandboxFolder>
+      <ReadOnly>false</ReadOnly>
+    </MappedFolder>
+  </MappedFolders>
+
+  <LogonCommand>
+    <Command>wscript.exe C:\lanren-ai\scripts\Install-DevTools.vbs</Command>
+  </LogonCommand>
+</Configuration>
+
