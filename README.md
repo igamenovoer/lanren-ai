@@ -165,7 +165,52 @@ graph TD
 
 ### For Users
 
-*Coming soon*: Download the installer package, double-click `Install-DevTools.vbs`, and select the packs you want.
+You can already install the **Common Development Tools Pack** on Windows using the prototype scripts in this repo.
+
+#### Option 1: Install directly on your machine (PowerShell)
+
+1. Open an elevated PowerShell window (**Run as Administrator**).
+2. Change to the repo directory:
+   ```powershell
+   cd D:\code\lanren-ai   # or your clone path
+   ```
+3. Run the common pack installer:
+   ```powershell
+   .\scripts\install-common-pack.ps1
+   ```
+4. Follow the prompts in the console. A log file will be created under:
+   - `scripts\logs\install-common-pack_YYYYMMDD_HHMMSS.log`
+
+This installs (via WinGet / CLI) the tools defined in `context/design/packs/common-pack.md`, including:
+- Visual Studio Code and AI-related extensions (Cline, Kilo Code, Claude Code, Codex, Python, Markdown Preview Enhanced)
+- Claude Code CLI
+- Node.js (and npm), with optional Codex CLI (`@openai/codex`)
+- uv, pixi, jq, yq, pandoc, and markitdown (via `uv` where applicable)
+
+To run non-interactively (auto-confirm prompts):
+```powershell
+.\scripts\install-common-pack.ps1 -NonInteractive
+```
+
+#### Option 2: Install safely inside Windows Sandbox
+
+If you have **Windows Sandbox** enabled (Windows 10/11 Pro/Enterprise):
+
+1. Ensure the repo path in the sandbox config matches your clone:
+   - Open `scripts/WindowsSandbox-InstallCommonPack.wsb` and confirm:
+     ```xml
+     <HostFolder>D:\code\lanren-ai</HostFolder>
+     ```
+     Update it if your clone is in a different location.
+2. In File Explorer, double-click:
+   - `scripts\WindowsSandbox-InstallCommonPack.wsb`
+3. Windows Sandbox will start, map the repo into `C:\lanren-ai` inside the sandbox, and automatically run:
+   ```powershell
+   powershell.exe -ExecutionPolicy Bypass -NoProfile -File C:\lanren-ai\scripts\install-common-pack.ps1 -NonInteractive
+   ```
+4. Inside the sandbox, tools are installed into the disposable environment. When you close the sandbox window, its changes are discarded on the host.
+
+This option is ideal if you want to **test the installer and the common pack** without touching your main Windows installation.
 
 ### For Developers
 
