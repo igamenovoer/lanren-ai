@@ -25,9 +25,20 @@ echo.
 echo Running Claude Code custom-API helper...
 echo.
 
+:: Choose PowerShell host:
+:: - Prefer PowerShell 7 (pwsh) if available
+:: - Fall back to Windows PowerShell (powershell)
+set "PS_CMD="
+where pwsh >nul 2>&1
+if %ERRORLEVEL% EQU 0 (
+    set "PS_CMD=pwsh"
+) else (
+    set "PS_CMD=powershell"
+)
+
 :: Run the PowerShell helper with execution policy bypass so that
 :: the .ps1 script can run even if scripts are restricted.
-powershell -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%PS1_FILE%" %*
+%PS_CMD% -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%PS1_FILE%" %*
 set "EXITCODE=%ERRORLEVEL%"
 
 echo.

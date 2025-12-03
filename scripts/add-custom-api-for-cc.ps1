@@ -87,10 +87,21 @@ try {
     }
 
     # Resolve user PowerShell profile path
-    $profilePath = $PROFILE.CurrentUserCurrentHost
-    if (-not $profilePath) {
-        Write-Err "Could not determine PowerShell profile path (PROFILE.CurrentUserCurrentHost is empty)."
-        exit 1
+    # Prefer the PowerShell 7 profile location, even if this script
+    # is launched from Windows PowerShell 5.1 via .bat.
+    if ($PSVersionTable.PSVersion.Major -ge 7 -and $PROFILE.CurrentUserCurrentHost) {
+        # Running under pwsh: use the current host's profile
+        $profilePath = $PROFILE.CurrentUserCurrentHost
+    }
+    else {
+        # Approximate PowerShell 7 profile path for this user
+        $userHome = $env:USERPROFILE
+        if (-not $userHome) {
+            Write-Err "Could not determine USERPROFILE for locating PowerShell 7 profile."
+            exit 1
+        }
+        $profileDir = Join-Path $userHome "Documents\PowerShell"
+        $profilePath = Join-Path $profileDir "Microsoft.PowerShell_profile.ps1"
     }
 
     $profileDir = Split-Path -Parent $profilePath
