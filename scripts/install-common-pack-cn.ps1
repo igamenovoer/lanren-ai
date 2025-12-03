@@ -198,8 +198,22 @@ function Install-VSCodeExtensions {
 }
 
 function Install-ClaudeCodeCLI {
-    Write-Log "Installing Claude Code CLI..." "INFO"
-    Invoke-WinGetInstall -Id "Anthropic.ClaudeCode" -DisplayName "Claude Code CLI" | Out-Null
+    if (-not (Test-CommandExists -Name "npm")) {
+        Write-Log "npm is not available. Skipping Claude Code CLI installation. Install Node.js and npm first." "WARN"
+        return
+    }
+
+    if (-not (Ensure-Confirmation -Message "Install Claude Code CLI via npm (package '@anthropic-ai/claude-code') using the configured China npm mirror?")) {
+        return
+    }
+
+    Write-Log "Installing Claude Code CLI via npm (package '@anthropic-ai/claude-code')..." "INFO"
+    try {
+        npm install -g @anthropic-ai/claude-code
+        Write-Log "Claude Code CLI installation command completed." "INFO"
+    } catch {
+        Write-Log "Claude Code CLI installation failed: $($_.Exception.Message)" "WARN"
+    }
 }
 
 function Install-NodeJS {
@@ -311,6 +325,32 @@ function Install-Markitdown {
     }
 }
 
+function Invoke-ClaudeSkipLoginHelper {
+    $scriptDir = $PSScriptRoot
+    if (-not $scriptDir) {
+        $scriptDir = Split-Path -Parent $PSCommandPath -ErrorAction SilentlyContinue
+    }
+    if (-not $scriptDir) {
+        $scriptDir = (Get-Location).Path
+    }
+
+    $repoRoot = Split-Path -Parent $scriptDir
+    $helperPath = Join-Path $repoRoot "quick-tools\claude\skip-cc-login.ps1"
+
+    if (-not (Test-Path $helperPath)) {
+        Write-Log "Claude skip-login helper script not found at $helperPath. Skipping." "WARN"
+        return
+    }
+
+    Write-Log "Running Claude skip-login helper script: $helperPath ..." "INFO"
+    try {
+        & $helperPath
+        Write-Log "Claude skip-login helper script completed." "INFO"
+    } catch {
+        Write-Log "Claude skip-login helper script failed: $($_.Exception.Message)" "WARN"
+    }
+}
+
 function Show-Summary {
     Write-Host ""
     Write-Host "This script will attempt to install the following tools from the Common AI Development Tools pack (CN-optimized):"
@@ -343,9 +383,9 @@ try {
 
     Install-VisualStudioCode
     Install-VSCodeExtensions
-    Install-ClaudeCodeCLI
     Install-NodeJS
     Configure-NpmMirror
+    Install-ClaudeCodeCLI
     Install-CodexCLI
     Install-Uv
     Install-Pixi
@@ -353,6 +393,7 @@ try {
     Install-Yq
     Install-Pandoc
     Install-Markitdown
+    Invoke-ClaudeSkipLoginHelper
 } catch {
     Write-Log "Unexpected error during CN pack installation: $($_.Exception.Message)" "ERROR"
 }
