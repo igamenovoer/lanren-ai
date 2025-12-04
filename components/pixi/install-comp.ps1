@@ -32,12 +32,14 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+$null = $FromOfficial
+
 $lines = @()
 $lines += ""
 $lines += "=== Installing pixi (prefix.dev) ==="
 $lines += ""
 
-function Write-OutputLines {
+function Write-OutputLine {
     param(
         [string[]]$Content,
         [string]$LogFile
@@ -46,11 +48,11 @@ function Write-OutputLines {
     if ($LogFile) {
         $Content -join "`r`n" | Out-File -FilePath $LogFile -Encoding Default -Force
     } else {
-        $Content | ForEach-Object { Write-Host $_ }
+        $Content | ForEach-Object { Write-Output $_ }
     }
 }
 
-function Ensure-ToolOnPath {
+function Test-ToolOnPath {
     param(
         [string]$CommandName
     )
@@ -59,10 +61,10 @@ function Ensure-ToolOnPath {
 }
 
 try {
-    if ((Ensure-ToolOnPath -CommandName "pixi") -and -not $Force) {
+    if ((Test-ToolOnPath -CommandName "pixi") -and -not $Force) {
         $lines += "pixi is already available on PATH. Use -Force to reinstall."
         $lines += "No installation performed."
-        Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+        Write-OutputLine -Content $lines -LogFile $CaptureLogFile
         exit 0
     }
 
@@ -76,16 +78,16 @@ try {
     $installed = $false
 
     if ($wingetCmd) {
-        $args = @("install","-e","--id","prefix-dev.pixi")
+        $wingetArgs = @("install","-e","--id","prefix-dev.pixi")
         if ($AcceptDefaults) {
-            $args += @("--accept-source-agreements","--accept-package-agreements")
+            $wingetArgs += @("--accept-source-agreements","--accept-package-agreements")
         }
 
-        $lines += "Running: winget $($args -join ' ')"
-        & winget @args
+        $lines += "Running: winget $($wingetArgs -join ' ')"
+        & winget @wingetArgs
         $exitCode = $LASTEXITCODE
 
-        if ($exitCode -eq 0 -and (Ensure-ToolOnPath -CommandName "pixi")) {
+        if ($exitCode -eq 0 -and (Test-ToolOnPath -CommandName "pixi")) {
             $lines += "pixi installed successfully via winget."
             $installed = $true
         } else {
@@ -105,9 +107,9 @@ try {
         $installCommand = 'iwr https://pixi.sh/install.ps1 -UseBasicParsing | iex'
         powershell -NoProfile -ExecutionPolicy Bypass -Command $installCommand
 
-        if ($LASTEXITCODE -ne 0 -or -not (Ensure-ToolOnPath -CommandName "pixi")) {
+        if ($LASTEXITCODE -ne 0 -or -not (Test-ToolOnPath -CommandName "pixi")) {
             $lines += "Error: pixi install script did not succeed (exit code $LASTEXITCODE)."
-            Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+            Write-OutputLine -Content $lines -LogFile $CaptureLogFile
             exit 1
         }
 
@@ -115,10 +117,9 @@ try {
     }
 } catch {
     $lines += "Error installing pixi: $($_.Exception.Message)"
-    Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+    Write-OutputLine -Content $lines -LogFile $CaptureLogFile
     exit 1
 }
 
-Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+Write-OutputLine -Content $lines -LogFile $CaptureLogFile
 exit 0
-

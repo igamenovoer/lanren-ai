@@ -37,7 +37,7 @@ $lines += ""
 $lines += "=== Installing Node.js (LTS) ==="
 $lines += ""
 
-function Write-OutputLines {
+function Write-OutputLine {
     param(
         [string[]]$Content,
         [string]$LogFile
@@ -46,11 +46,11 @@ function Write-OutputLines {
     if ($LogFile) {
         $Content -join "`r`n" | Out-File -FilePath $LogFile -Encoding Default -Force
     } else {
-        $Content | ForEach-Object { Write-Host $_ }
+        $Content | ForEach-Object { Write-Output $_ }
     }
 }
 
-function Ensure-ToolOnPath {
+function Test-ToolOnPath {
     param(
         [string]$CommandName
     )
@@ -59,10 +59,10 @@ function Ensure-ToolOnPath {
 }
 
 try {
-    if ((Ensure-ToolOnPath -CommandName "node") -and -not $Force) {
+    if ((Test-ToolOnPath -CommandName "node") -and -not $Force) {
         $lines += "Node.js is already available on PATH (node command found). Use -Force to reinstall."
         $lines += "No installation performed."
-        Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+        Write-OutputLine -Content $lines -LogFile $CaptureLogFile
         exit 0
     }
 
@@ -76,18 +76,18 @@ try {
     if ($wingetCmd) {
         $ids = @("OpenJS.NodeJS.LTS","OpenJS.NodeJS")
         foreach ($id in $ids) {
-            $args = @("install","-e","--id",$id)
+            $wingetArgs = @("install","-e","--id",$id)
             if ($AcceptDefaults) {
-                $args += @("--accept-source-agreements","--accept-package-agreements")
+                $wingetArgs += @("--accept-source-agreements","--accept-package-agreements")
             }
 
-            $lines += "Running: winget $($args -join ' ')"
-            & winget @args
+            $lines += "Running: winget $($wingetArgs -join ' ')"
+            & winget @wingetArgs
             $exitCode = $LASTEXITCODE
 
-            if ($exitCode -eq 0 -and (Ensure-ToolOnPath -CommandName "node")) {
+            if ($exitCode -eq 0 -and (Test-ToolOnPath -CommandName "node")) {
                 $lines += "Node.js installed successfully via winget (id=$id)."
-                Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+                Write-OutputLine -Content $lines -LogFile $CaptureLogFile
                 exit 0
             }
 
@@ -109,10 +109,9 @@ try {
     $lines += "Download an appropriate installer (LTS recommended) and run it."
 } catch {
     $lines += "Error installing Node.js: $($_.Exception.Message)"
-    Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+    Write-OutputLine -Content $lines -LogFile $CaptureLogFile
     exit 1
 }
 
-Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+Write-OutputLine -Content $lines -LogFile $CaptureLogFile
 exit 1
-

@@ -31,12 +31,14 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+$null = $FromOfficial
+
 $lines = @()
 $lines += ""
 $lines += "=== Installing PowerShell 7 ==="
 $lines += ""
 
-function Write-OutputLines {
+function Write-OutputLine {
     param(
         [string[]]$Content,
         [string]$LogFile
@@ -45,11 +47,11 @@ function Write-OutputLines {
     if ($LogFile) {
         $Content -join "`r`n" | Out-File -FilePath $LogFile -Encoding Default -Force
     } else {
-        $Content | ForEach-Object { Write-Host $_ }
+        $Content | ForEach-Object { Write-Output $_ }
     }
 }
 
-function Ensure-ToolOnPath {
+function Test-ToolOnPath {
     param(
         [string]$CommandName
     )
@@ -58,10 +60,10 @@ function Ensure-ToolOnPath {
 }
 
 try {
-    if ((Ensure-ToolOnPath -CommandName "pwsh") -and -not $Force) {
+    if ((Test-ToolOnPath -CommandName "pwsh") -and -not $Force) {
         $lines += "PowerShell 7 (pwsh) is already available on PATH. Use -Force to reinstall."
         $lines += "No installation performed."
-        Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+        Write-OutputLine -Content $lines -LogFile $CaptureLogFile
         exit 0
     }
 
@@ -73,18 +75,18 @@ try {
 
     $wingetCmd = Get-Command winget -ErrorAction SilentlyContinue
     if ($wingetCmd) {
-        $args = @("install","-e","--id","Microsoft.PowerShell")
+        $wingetArgs = @("install","-e","--id","Microsoft.PowerShell")
         if ($AcceptDefaults) {
-            $args += @("--accept-source-agreements","--accept-package-agreements")
+            $wingetArgs += @("--accept-source-agreements","--accept-package-agreements")
         }
 
-        $lines += "Running: winget $($args -join ' ')"
-        & winget @args
+        $lines += "Running: winget $($wingetArgs -join ' ')"
+        & winget @wingetArgs
         $exitCode = $LASTEXITCODE
 
-        if ($exitCode -eq 0 -and (Ensure-ToolOnPath -CommandName "pwsh")) {
+        if ($exitCode -eq 0 -and (Test-ToolOnPath -CommandName "pwsh")) {
             $lines += "PowerShell 7 installed successfully via winget."
-            Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+            Write-OutputLine -Content $lines -LogFile $CaptureLogFile
             exit 0
         }
 
@@ -101,10 +103,9 @@ try {
     $lines += "Download the appropriate MSI or ZIP for your platform and install it."
 } catch {
     $lines += "Error installing PowerShell 7: $($_.Exception.Message)"
-    Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+    Write-OutputLine -Content $lines -LogFile $CaptureLogFile
     exit 1
 }
 
-Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+Write-OutputLine -Content $lines -LogFile $CaptureLogFile
 exit 1
-

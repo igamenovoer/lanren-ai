@@ -3,21 +3,18 @@
 Ensures the Windows Package Manager (winget) is available.
 
 .DESCRIPTION
-Checks for the `winget` command and, if missing, downloads and installs the
-App Installer package. It attempts to download from a China-friendly mirror
-(GitHub Proxy) first, and falls back to the official Microsoft source
-(https://aka.ms/getwinget) if that fails.
-
-.PARAMETER Proxy
-Optional HTTP/HTTPS proxy URL to use for downloading App Installer.
+Checks for the `winget` command and, if missing, launches a locally cached
+App Installer `.msixbundle` so you can install or repair winget manually.
+If no local installer is found, it instructs you to download one.
 
 .PARAMETER AcceptDefaults
-When specified, runs non-interactively and accepts sensible defaults. This
-script itself does not prompt.
+When specified, signals a non-interactive run. This script itself does not
+prompt, but the parameter is kept for consistency with other installers and
+future automation.
 
-.PARAMETER FromOfficial
-When specified, confirms use of Microsoft's official source. For winget this
-is always the case.
+.PARAMETER Force
+When specified, forces a reinstall/repair attempt even if `winget` is already
+available.
 
 .PARAMETER CaptureLogFile
 Optional log file path. When provided, all output is written here using the
@@ -26,9 +23,7 @@ console default encoding so a .bat wrapper can print it.
 
 [CmdletBinding()]
 param(
-    [string]$Proxy,
     [switch]$AcceptDefaults,
-    [switch]$FromOfficial,
     [switch]$Force,
     [string]$CaptureLogFile
 )
@@ -41,11 +36,7 @@ $lines += ""
 $lines += "=== Ensuring winget (Windows Package Manager) is available ==="
 $lines += ""
 
-# Dependency URLs for winget (fallbacks if we can't get from release)
-$script:vcLibsUrl = "https://aka.ms/Microsoft.VCLibs.x64.14.00.Desktop.appx"
-$script:uiXamlUrl = "https://github.com/microsoft/microsoft-ui-xaml/releases/download/v2.8.6/Microsoft.UI.Xaml.2.8.x64.appx"
-
-function Write-OutputLines {
+function Write-OutputLine {
     param(
         [string[]]$Content,
         [string]$LogFile
@@ -56,7 +47,7 @@ function Write-OutputLines {
     } else {
         if ($script:lastPrintedLine -lt $Content.Count) {
             for ($i = $script:lastPrintedLine; $i -lt $Content.Count; $i++) {
-                Write-Host $Content[$i]
+                Write-Output $Content[$i]
             }
             $script:lastPrintedLine = $Content.Count
         }
@@ -68,10 +59,17 @@ function Start-AppInstallerAndWait {
     .SYNOPSIS
     Launches an msixbundle file and waits for the App Installer GUI to close.
     #>
+    [CmdletBinding(SupportsShouldProcess = $true)]
     param(
         [string]$FilePath,
         [switch]$AcceptDefaults
     )
+
+    $null = $AcceptDefaults
+
+    if (-not $PSCmdlet.ShouldProcess($FilePath, "Run App Installer for winget")) {
+        return
+    }
     
     # Launch the installer - this opens App Installer GUI
     Start-Process -FilePath $FilePath
@@ -101,7 +99,7 @@ try {
     $wingetCmd = Get-Command winget -ErrorAction SilentlyContinue
     if ($wingetCmd -and -not $Force) {
         $lines += "winget is already available on this system. Use -Force to reinstall."
-        Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+        Write-OutputLine -Content $lines -LogFile $CaptureLogFile
         exit 0
     }
 
@@ -168,10 +166,6 @@ try {
         exit 1
     }
 
-    if (-not $installed) {
-        throw "All installation attempts failed."
-    }
-
     $wingetCmd = Get-Command winget -ErrorAction SilentlyContinue
     if ($wingetCmd) {
         $lines += "winget is now available."
@@ -189,4 +183,3 @@ try {
 
 Write-OutputLines -Content $lines -LogFile $CaptureLogFile
 exit 1
-

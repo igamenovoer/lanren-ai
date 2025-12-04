@@ -35,12 +35,15 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+$null = $AcceptDefaults
+$null = $FromOfficial
+
 $lines = @()
 $lines += ""
 $lines += "=== Installing Bun (JavaScript runtime) ==="
 $lines += ""
 
-function Write-OutputLines {
+function Write-OutputLine {
     param(
         [string[]]$Content,
         [string]$LogFile
@@ -49,7 +52,7 @@ function Write-OutputLines {
     if ($LogFile) {
         $Content -join "`r`n" | Out-File -FilePath $LogFile -Encoding Default -Force
     } else {
-        $Content | ForEach-Object { Write-Host $_ }
+        $Content | ForEach-Object { Write-Output $_ }
     }
 }
 
@@ -58,11 +61,11 @@ try {
     if ($existing -and -not $Force) {
         $lines += "Bun is already available on PATH (bun command found). Use -Force to reinstall."
         $lines += "No installation performed."
-        Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+        Write-OutputLine -Content $lines -LogFile $CaptureLogFile
         exit 0
     }
 } catch {
-    # If detection fails, continue with installation attempt.
+    $lines += "Warning: Failed to detect existing Bun installation: $($_.Exception.Message)"
 }
 
 try {
@@ -78,7 +81,7 @@ try {
     powershell -NoProfile -ExecutionPolicy Bypass -Command $installCommand
     if ($LASTEXITCODE -ne 0) {
         $lines += "Bun installer returned a non-zero exit code: $LASTEXITCODE"
-        Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+        Write-OutputLine -Content $lines -LogFile $CaptureLogFile
         exit 1
     }
 
@@ -95,10 +98,9 @@ try {
     }
 } catch {
     $lines += "Error installing Bun: $($_.Exception.Message)"
-    Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+    Write-OutputLine -Content $lines -LogFile $CaptureLogFile
     exit 1
 }
 
-Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+Write-OutputLine -Content $lines -LogFile $CaptureLogFile
 exit 0
-

@@ -24,11 +24,11 @@ param(
 )
 
 if (-not $Mirror) {
-    Write-Host "Usage: .\config-comp.ps1 -Mirror <cn|aliyun|tuna|official>"
-    Write-Host "  cn       : Use Aliyun mirror (default for China)"
-    Write-Host "  aliyun   : Use Aliyun mirror"
-    Write-Host "  tuna     : Use Tsinghua University mirror"
-    Write-Host "  official : Use official PyPI"
+    Write-Output "Usage: .\config-comp.ps1 -Mirror <cn|aliyun|tuna|official>"
+    Write-Output "  cn       : Use Aliyun mirror (default for China)"
+    Write-Output "  aliyun   : Use Aliyun mirror"
+    Write-Output "  tuna     : Use Tsinghua University mirror"
+    Write-Output "  official : Use official PyPI"
     exit 0
 }
 
@@ -43,8 +43,8 @@ $registryUrl = switch ($Mirror) {
     "official" { "https://pypi.org/simple" }
 }
 
-Write-Host "=== Configuring uv Global Mirror ==="
-Write-Host "Selected Mirror: $Mirror ($registryUrl)"
+Write-Output "=== Configuring uv Global Mirror ==="
+Write-Output "Selected Mirror: $Mirror ($registryUrl)"
 
 # Determine config path
 # On Windows, uv looks in %APPDATA%\uv\uv.toml
@@ -75,17 +75,17 @@ $content = $content -replace "`r`n", "`n"
 
 if ($content -match '(?m)^index-url\s*=\s*".*"') {
     $content = $content -replace '(?m)^index-url\s*=\s*".*"', "index-url = `"$registryUrl`""
-    Write-Host "Updated existing index-url configuration."
+    Write-Output "Updated existing index-url configuration."
 } else {
     if ($content.Length -gt 0 -and -not $content.EndsWith("`n")) {
         $content += "`n"
     }
     $content += "index-url = `"$registryUrl`"`n"
-    Write-Host "Added index-url configuration."
+    Write-Output "Added index-url configuration."
 }
 
 # Write back with UTF8 encoding
 $content | Out-File -FilePath $configPath -Encoding utf8 -Force
 
-Write-Host "Configuration complete."
-Write-Host "Config file location: $configPath"
+Write-Output "Configuration complete."
+Write-Output "Config file location: $configPath"

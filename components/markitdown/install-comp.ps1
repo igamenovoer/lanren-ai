@@ -32,12 +32,14 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+$null = $AcceptDefaults
+
 $lines = @()
 $lines += ""
 $lines += "=== Installing MarkItDown (via uv tool) ==="
 $lines += ""
 
-function Write-OutputLines {
+function Write-OutputLine {
     param(
         [string[]]$Content,
         [string]$LogFile
@@ -46,11 +48,11 @@ function Write-OutputLines {
     if ($LogFile) {
         $Content -join "`r`n" | Out-File -FilePath $LogFile -Encoding Default -Force
     } else {
-        $Content | ForEach-Object { Write-Host $_ }
+        $Content | ForEach-Object { Write-Output $_ }
     }
 }
 
-function Ensure-ToolOnPath {
+function Test-ToolOnPath {
     param(
         [string]$CommandName
     )
@@ -59,16 +61,16 @@ function Ensure-ToolOnPath {
 }
 
 try {
-    if (-not (Ensure-ToolOnPath -CommandName "uv")) {
+    if (-not (Test-ToolOnPath -CommandName "uv")) {
         $lines += "Error: uv is not available on PATH."
         $lines += "Install uv first (see components/uv/install-comp)."
-        Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+        Write-OutputLine -Content $lines -LogFile $CaptureLogFile
         exit 1
     }
 
-    if ((Ensure-ToolOnPath -CommandName "markitdown") -and -not $Force) {
+    if ((Test-ToolOnPath -CommandName "markitdown") -and -not $Force) {
         $lines += "MarkItDown is already available on PATH. Use -Force to reinstall."
-        Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+        Write-OutputLine -Content $lines -LogFile $CaptureLogFile
         exit 0
     }
 
@@ -104,17 +106,16 @@ try {
 
     if ($exitCode -ne 0) {
         $lines += "Error: uv failed to install MarkItDown (exit code $exitCode)."
-        Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+        Write-OutputLine -Content $lines -LogFile $CaptureLogFile
         exit 1
     }
 
     $lines += "MarkItDown installed successfully via uv tool."
 } catch {
     $lines += "Error installing MarkItDown: $($_.Exception.Message)"
-    Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+    Write-OutputLine -Content $lines -LogFile $CaptureLogFile
     exit 1
 }
 
-Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+Write-OutputLine -Content $lines -LogFile $CaptureLogFile
 exit 0
-

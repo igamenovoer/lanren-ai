@@ -32,12 +32,14 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+$null = $FromOfficial
+
 $lines = @()
 $lines += ""
 $lines += "=== Installing yq (YAML/JSON/XML processor) ==="
 $lines += ""
 
-function Write-OutputLines {
+function Write-OutputLine {
     param(
         [string[]]$Content,
         [string]$LogFile
@@ -46,11 +48,11 @@ function Write-OutputLines {
     if ($LogFile) {
         $Content -join "`r`n" | Out-File -FilePath $LogFile -Encoding Default -Force
     } else {
-        $Content | ForEach-Object { Write-Host $_ }
+        $Content | ForEach-Object { Write-Output $_ }
     }
 }
 
-function Ensure-ToolOnPath {
+function Test-ToolOnPath {
     param(
         [string]$CommandName
     )
@@ -78,10 +80,10 @@ function Add-DirectoryToUserPath {
 }
 
 try {
-    if ((Ensure-ToolOnPath -CommandName "yq") -and -not $Force) {
+    if ((Test-ToolOnPath -CommandName "yq") -and -not $Force) {
         $lines += "yq is already available on PATH. Use -Force to reinstall."
         $lines += "No installation performed."
-        Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+        Write-OutputLine -Content $lines -LogFile $CaptureLogFile
         exit 0
     }
 
@@ -95,16 +97,16 @@ try {
     $installed = $false
 
     if ($wingetCmd) {
-        $args = @("install","-e","--id","MikeFarah.yq")
+        $wingetArgs = @("install","-e","--id","MikeFarah.yq")
         if ($AcceptDefaults) {
-            $args += @("--accept-source-agreements","--accept-package-agreements")
+            $wingetArgs += @("--accept-source-agreements","--accept-package-agreements")
         }
 
-        $lines += "Running: winget $($args -join ' ')"
-        & winget @args
+        $lines += "Running: winget $($wingetArgs -join ' ')"
+        & winget @wingetArgs
         $exitCode = $LASTEXITCODE
 
-        if ($exitCode -eq 0 -and (Ensure-ToolOnPath -CommandName "yq")) {
+        if ($exitCode -eq 0 -and (Test-ToolOnPath -CommandName "yq")) {
             $lines += "yq installed successfully via winget."
             $installed = $true
         } else {
@@ -142,7 +144,7 @@ try {
 
         Add-DirectoryToUserPath -Directory $toolsDir
 
-        if (-not (Ensure-ToolOnPath -CommandName "yq")) {
+        if (-not (Test-ToolOnPath -CommandName "yq")) {
             $lines += "yq binary was installed, but PATH may not reflect it yet."
             $lines += "You may need to restart your shell or sign out and back in."
         } else {
@@ -151,10 +153,9 @@ try {
     }
 } catch {
     $lines += "Error installing yq: $($_.Exception.Message)"
-    Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+    Write-OutputLine -Content $lines -LogFile $CaptureLogFile
     exit 1
 }
 
-Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+Write-OutputLine -Content $lines -LogFile $CaptureLogFile
 exit 0
-

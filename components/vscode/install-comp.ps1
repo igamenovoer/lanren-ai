@@ -39,7 +39,7 @@ $lines += ""
 $lines += "=== Installing Visual Studio Code ==="
 $lines += ""
 
-function Write-OutputLines {
+function Write-OutputLine {
     param(
         [string[]]$Content,
         [string]$LogFile
@@ -48,7 +48,7 @@ function Write-OutputLines {
     if ($LogFile) {
         $Content -join "`r`n" | Out-File -FilePath $LogFile -Encoding Default -Force
     } else {
-        $Content | ForEach-Object { Write-Host $_ }
+        $Content | ForEach-Object { Write-Output $_ }
     }
 }
 
@@ -57,7 +57,7 @@ try {
     if ($codeCmd -and -not $Force) {
         $lines += "Visual Studio Code is already available on PATH (code command found). Use -Force to reinstall."
         $lines += "No installation performed."
-        Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+        Write-OutputLine -Content $lines -LogFile $CaptureLogFile
         exit 0
     }
 
@@ -69,26 +69,26 @@ try {
 
     $wingetCmd = Get-Command winget -ErrorAction SilentlyContinue
     if ($wingetCmd) {
-        $args = @(
+        $wingetArgs = @(
             "install",
             "--id","Microsoft.VisualStudioCode"
         )
 
         if ($AcceptDefaults) {
-            $args += @("--accept-source-agreements","--accept-package-agreements")
+            $wingetArgs += @("--accept-source-agreements","--accept-package-agreements")
         }
 
         $override = '/VERYSILENT /SP- /MERGETASKS="addcontextmenufiles,addcontextmenufolders,associatewithfiles,addtopath"'
-        $args += @("--override",$override)
+        $wingetArgs += @("--override",$override)
 
-        $lines += "Running: winget $($args -join ' ')"
-        & winget @args
+        $lines += "Running: winget $($wingetArgs -join ' ')"
+        & winget @wingetArgs
         $exitCode = $LASTEXITCODE
 
         if ($exitCode -eq 0) {
             $lines += "VS Code installed successfully via winget."
             $lines += "Explorer context menus and PATH should be enabled via installer override."
-            Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+            Write-OutputLine -Content $lines -LogFile $CaptureLogFile
             exit 0
         }
 
@@ -105,13 +105,12 @@ try {
     $lines += "- Official download page: https://code.visualstudio.com/Download"
     $lines += ""
     $lines += "Download the User Setup installer (VSCodeUserSetup-*.exe) and run it with, for example:"
-    $lines += "  .\\VSCodeUserSetup-*.exe /VERYSILENT /NORESTART /MERGETASKS=\"addcontextmenufiles,addcontextmenufolders,addtopath\""
+    $lines += '  .\VSCodeUserSetup-*.exe /VERYSILENT /NORESTART /MERGETASKS="addcontextmenufiles,addcontextmenufolders,addtopath"'
 } catch {
     $lines += "Error installing Visual Studio Code: $($_.Exception.Message)"
-    Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+    Write-OutputLine -Content $lines -LogFile $CaptureLogFile
     exit 1
 }
 
-Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+Write-OutputLine -Content $lines -LogFile $CaptureLogFile
 exit 1
-

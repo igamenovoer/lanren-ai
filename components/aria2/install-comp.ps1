@@ -32,12 +32,14 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+$null = $FromOfficial
+
 $lines = @()
 $lines += ""
 $lines += "=== Installing aria2 (download utility) ==="
 $lines += ""
 
-function Write-OutputLines {
+function Write-OutputLine {
     param(
         [string[]]$Content,
         [string]$LogFile
@@ -46,11 +48,11 @@ function Write-OutputLines {
     if ($LogFile) {
         $Content -join "`r`n" | Out-File -FilePath $LogFile -Encoding Default -Force
     } else {
-        $Content | ForEach-Object { Write-Host $_ }
+        $Content | ForEach-Object { Write-Output $_ }
     }
 }
 
-function Ensure-ToolOnPath {
+function Test-ToolOnPath {
     param(
         [string]$CommandName
     )
@@ -59,10 +61,10 @@ function Ensure-ToolOnPath {
 }
 
 try {
-    if ((Ensure-ToolOnPath -CommandName "aria2c") -and -not $Force) {
+    if ((Test-ToolOnPath -CommandName "aria2c") -and -not $Force) {
         $lines += "aria2 is already available on PATH (aria2c command found). Use -Force to reinstall."
         $lines += "No installation performed."
-        Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+        Write-OutputLine -Content $lines -LogFile $CaptureLogFile
         exit 0
     }
 
@@ -74,18 +76,18 @@ try {
 
     $wingetCmd = Get-Command winget -ErrorAction SilentlyContinue
     if ($wingetCmd) {
-        $args = @("install","-e","--id","aria2.aria2")
+        $wingetArgs = @("install","-e","--id","aria2.aria2")
         if ($AcceptDefaults) {
-            $args += @("--accept-source-agreements","--accept-package-agreements")
+            $wingetArgs += @("--accept-source-agreements","--accept-package-agreements")
         }
 
-        $lines += "Running: winget $($args -join ' ')"
-        & winget @args
+        $lines += "Running: winget $($wingetArgs -join ' ')"
+        & winget @wingetArgs
         $exitCode = $LASTEXITCODE
 
-        if ($exitCode -eq 0 -and (Ensure-ToolOnPath -CommandName "aria2c")) {
+        if ($exitCode -eq 0 -and (Test-ToolOnPath -CommandName "aria2c")) {
             $lines += "aria2 installed successfully via winget."
-            Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+            Write-OutputLine -Content $lines -LogFile $CaptureLogFile
             exit 0
         }
 
@@ -104,9 +106,9 @@ try {
     $lines += "4. Restart your terminal."
 } catch {
     $lines += "Error installing aria2: $($_.Exception.Message)"
-    Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+    Write-OutputLine -Content $lines -LogFile $CaptureLogFile
     exit 1
 }
 
-Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+Write-OutputLine -Content $lines -LogFile $CaptureLogFile
 exit 1

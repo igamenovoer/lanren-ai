@@ -24,8 +24,12 @@ Where possible, component subdirectories should expose the following standard to
 - Key arguments:
   - PowerShell:
     - `-Proxy <url>` (or `-ProxyUrl <url>`) to specify an HTTP/HTTPS proxy for downloads and networked installers.
-    - `-AcceptDefaults` (or similar) to run non-interactively.
+    - `-AcceptDefaults` (or similar) to run non-interactively (accepting defaults, passing “yes” flags to underlying installers where supported).
     - `-FromOfficial` (or `-UseOfficialSource`) to force use of official URLs even if a local accelerator/proxy is configured.
+    - `-Force` to force a reinstall/repair even if the component appears to be already installed.
+    - `-CaptureLogFile <path>` to redirect all script output to a log file (for paired `.bat` wrappers or external callers to print later).
+  - Contract:
+    - All `install-comp.ps1` scripts must accept these standard switches (`-Proxy`, `-AcceptDefaults`, `-FromOfficial`, `-Force`, `-CaptureLogFile`), even if some of them are effectively no-ops for a given component.
 - Behavior:
   - Does not take an `--input-dir` / `-InputDir` parameter.
   - If the component is available via `winget`, installers should **prefer `winget` as the primary installation method**, using direct downloads or language-specific tools (`npm install`, `uv tool install`, etc.) only as a fallback when `winget` is unavailable or unsuitable.
@@ -35,7 +39,7 @@ Where possible, component subdirectories should expose the following standard to
   - To override this behavior, all installers must support a “from official” option:
     - PowerShell: a switch like `-FromOfficial` or `-UseOfficialSource`
     - When set, the script uses official URLs/repositories only; if the official source is already the default, this flag is effectively a no-op.
-  - The PowerShell script should set proxy environment or command options as needed (e.g., `HTTP_PROXY`, `HTTPS_PROXY`, `winget`/`Invoke-WebRequest` options), honor `-FromOfficial`/`-Proxy`/`-AcceptDefaults`, and optionally support `-CaptureLogFile`.
+  - The PowerShell script should set proxy environment or command options as needed (e.g., `HTTP_PROXY`, `HTTPS_PROXY`, `winget`/`Invoke-WebRequest` options), honor `-FromOfficial` / `-Proxy` / `-AcceptDefaults` / `-Force`, and support `-CaptureLogFile`.
 
 ### `config-comp.ps1`
 

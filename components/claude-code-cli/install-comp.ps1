@@ -35,12 +35,14 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+$null = $AcceptDefaults
+
 $lines = @()
 $lines += ""
 $lines += "=== Installing Claude Code CLI ==="
 $lines += ""
 
-function Write-OutputLines {
+function Write-OutputLine {
     param(
         [string[]]$Content,
         [string]$LogFile
@@ -49,11 +51,11 @@ function Write-OutputLines {
     if ($LogFile) {
         $Content -join "`r`n" | Out-File -FilePath $LogFile -Encoding Default -Force
     } else {
-        $Content | ForEach-Object { Write-Host $_ }
+        $Content | ForEach-Object { Write-Output $_ }
     }
 }
 
-function Ensure-ToolOnPath {
+function Test-ToolOnPath {
     param(
         [string]$CommandName
     )
@@ -62,23 +64,23 @@ function Ensure-ToolOnPath {
 }
 
 try {
-    if (-not (Ensure-ToolOnPath -CommandName "node")) {
+    if (-not (Test-ToolOnPath -CommandName "node")) {
         $lines += "Error: Node.js is not available on PATH."
         $lines += "Install Node.js first (see components/nodejs/install-comp)."
-        Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+        Write-OutputLine -Content $lines -LogFile $CaptureLogFile
         exit 1
     }
 
-    if (-not (Ensure-ToolOnPath -CommandName "npm")) {
+    if (-not (Test-ToolOnPath -CommandName "npm")) {
         $lines += "Error: npm is not available on PATH."
         $lines += "Reinstall Node.js with npm support and try again."
-        Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+        Write-OutputLine -Content $lines -LogFile $CaptureLogFile
         exit 1
     }
 
-    if ((Ensure-ToolOnPath -CommandName "claude") -and -not $Force) {
+    if ((Test-ToolOnPath -CommandName "claude") -and -not $Force) {
         $lines += "Claude Code CLI is already available on PATH. Use -Force to reinstall."
-        Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+        Write-OutputLine -Content $lines -LogFile $CaptureLogFile
         exit 0
     }
 
@@ -115,11 +117,11 @@ try {
 
     if ($exitCode -ne 0) {
         $lines += "Error: npm failed to install $packageName (exit code $exitCode)."
-        Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+        Write-OutputLine -Content $lines -LogFile $CaptureLogFile
         exit 1
     }
 
-    if (-not (Ensure-ToolOnPath -CommandName "claude")) {
+    if (-not (Test-ToolOnPath -CommandName "claude")) {
         $lines += "Warning: 'claude' command not found on PATH after installation."
         $lines += "Verify your global npm bin directory is on PATH."
     } else {
@@ -161,9 +163,9 @@ try {
     $lines += "Claude Code onboarding/login should now be skipped on this host."
 } catch {
     $lines += "Error installing or configuring Claude Code CLI: $($_.Exception.Message)"
-    Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+    Write-OutputLine -Content $lines -LogFile $CaptureLogFile
     exit 1
 }
 
-Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+Write-OutputLine -Content $lines -LogFile $CaptureLogFile
 exit 0

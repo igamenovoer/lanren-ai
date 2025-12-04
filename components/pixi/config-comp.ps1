@@ -37,10 +37,10 @@ param(
 )
 
 if (-not $Mirror -and -not $MirrorConda -and -not $MirrorPypi) {
-    Write-Host "Usage: .\config-comp.ps1 [-Mirror <cn|official>] [-MirrorConda <cn|official|tuna>] [-MirrorPypi <cn|official|aliyun|tuna>]"
-    Write-Host "  -Mirror      : Sets both Conda and PyPI to preset (cn=tuna)"
-    Write-Host "  -MirrorConda : Overrides Conda mirror"
-    Write-Host "  -MirrorPypi  : Overrides PyPI mirror"
+    Write-Output "Usage: .\config-comp.ps1 [-Mirror <cn|official>] [-MirrorConda <cn|official|tuna>] [-MirrorPypi <cn|official|aliyun|tuna>]"
+    Write-Output "  -Mirror      : Sets both Conda and PyPI to preset (cn=tuna)"
+    Write-Output "  -MirrorConda : Overrides Conda mirror"
+    Write-Output "  -MirrorPypi  : Overrides PyPI mirror"
     exit 0
 }
 
@@ -51,7 +51,7 @@ if (-not (Get-Command pixi -ErrorAction SilentlyContinue)) {
     exit 1
 }
 
-Write-Host "=== Configuring pixi Global Mirrors ==="
+Write-Output "=== Configuring pixi Global Mirrors ==="
 
 # URLs
 $urls = @{
@@ -79,15 +79,19 @@ if ($effectivePypi -eq "cn") { $effectivePypi = "tuna" }
 # Apply Conda Config
 if ($effectiveConda) {
     if ($effectiveConda -eq "official") {
-        Write-Host "Unsetting conda-forge mirror..."
+        Write-Output "Unsetting conda-forge mirror..."
         # We use try/catch or ignore error because unset might fail if key doesn't exist (depending on version)
         # Also try unsetting the whole mirrors block if we can't target the specific key easily, 
         # but 'pixi config unset mirrors' is safer if we assume we manage the whole block.
-        try { pixi config unset mirrors --global 2>$null } catch {}
+        try {
+            pixi config unset mirrors --global 2>$null
+        } catch {
+            Write-Warning "Failed to unset pixi conda-forge mirror: $($_.Exception.Message)"
+        }
     } elseif ($effectiveConda -eq "tuna") {
         $urlKey = "${effectiveConda}_conda"
         $url = $urls[$urlKey]
-        Write-Host "Setting conda-forge mirror to $effectiveConda ($url)..."
+        Write-Output "Setting conda-forge mirror to $effectiveConda ($url)..."
         
         # Construct JSON object for mirrors
         # { "https://conda.anaconda.org/conda-forge": ["url"] }
@@ -102,18 +106,22 @@ if ($effectivePypi) {
     $pypiKey = "pypi-config.index-url"
     
     if ($effectivePypi -eq "official") {
-        Write-Host "Unsetting PyPI index-url..."
-        try { pixi config unset $pypiKey --global 2>$null } catch {}
+        Write-Output "Unsetting PyPI index-url..."
+        try {
+            pixi config unset $pypiKey --global 2>$null
+        } catch {
+            Write-Warning "Failed to unset pixi PyPI index-url: $($_.Exception.Message)"
+        }
     } else {
         $url = $null
         if ($effectivePypi -eq "tuna") { $url = $urls["tuna_pypi"] }
         elseif ($effectivePypi -eq "aliyun") { $url = $urls["aliyun_pypi"] }
         
         if ($url) {
-            Write-Host "Setting PyPI index-url to $effectivePypi ($url)..."
+            Write-Output "Setting PyPI index-url to $effectivePypi ($url)..."
             pixi config set $pypiKey $url --global
         }
     }
 }
 
-Write-Host "Configuration complete."
+Write-Output "Configuration complete."

@@ -32,12 +32,14 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+$null = $AcceptDefaults
+
 $lines = @()
 $lines += ""
 $lines += "=== Installing Tavily MCP server ==="
 $lines += ""
 
-function Write-OutputLines {
+function Write-OutputLine {
     param(
         [string[]]$Content,
         [string]$LogFile
@@ -46,11 +48,11 @@ function Write-OutputLines {
     if ($LogFile) {
         $Content -join "`r`n" | Out-File -FilePath $LogFile -Encoding Default -Force
     } else {
-        $Content | ForEach-Object { Write-Host $_ }
+        $Content | ForEach-Object { Write-Output $_ }
     }
 }
 
-function Ensure-ToolOnPath {
+function Test-ToolOnPath {
     param(
         [string]$CommandName
     )
@@ -59,17 +61,17 @@ function Ensure-ToolOnPath {
 }
 
 try {
-    if (-not (Ensure-ToolOnPath -CommandName "node")) {
+    if (-not (Test-ToolOnPath -CommandName "node")) {
         $lines += "Error: Node.js is not available on PATH."
         $lines += "Install Node.js first (see components/nodejs/install-comp)."
-        Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+        Write-OutputLine -Content $lines -LogFile $CaptureLogFile
         exit 1
     }
 
-    if (-not (Ensure-ToolOnPath -CommandName "npm")) {
+    if (-not (Test-ToolOnPath -CommandName "npm")) {
         $lines += "Error: npm is not available on PATH."
         $lines += "Reinstall Node.js with npm support and try again."
-        Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+        Write-OutputLine -Content $lines -LogFile $CaptureLogFile
         exit 1
     }
 
@@ -81,11 +83,13 @@ try {
         if ($npmList -match $packageName) {
             $isInstalled = $true
         }
-    } catch {}
+    } catch {
+        $lines += "Warning: Failed to query npm for existing Tavily MCP server: $($_.Exception.Message)"
+    }
 
     if ($isInstalled -and -not $Force) {
         $lines += "Package $packageName is already installed globally. Use -Force to reinstall."
-        Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+        Write-OutputLine -Content $lines -LogFile $CaptureLogFile
         exit 0
     }
 
@@ -122,17 +126,16 @@ try {
 
     if ($exitCode -ne 0) {
         $lines += "Error: npm failed to install $packageName (exit code $exitCode)."
-        Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+        Write-OutputLine -Content $lines -LogFile $CaptureLogFile
         exit 1
     }
 
     $lines += "Tavily MCP server installed successfully."
 } catch {
     $lines += "Error installing Tavily MCP server: $($_.Exception.Message)"
-    Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+    Write-OutputLine -Content $lines -LogFile $CaptureLogFile
     exit 1
 }
 
-Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+Write-OutputLine -Content $lines -LogFile $CaptureLogFile
 exit 0
-

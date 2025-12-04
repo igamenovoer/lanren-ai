@@ -22,9 +22,9 @@ param(
 )
 
 if (-not $Mirror) {
-    Write-Host "Usage: .\config-comp.ps1 -Mirror <cn|official>"
-    Write-Host "  cn       : Use npmmirror.com (China)"
-    Write-Host "  official : Use npmjs.org"
+    Write-Output "Usage: .\config-comp.ps1 -Mirror <cn|official>"
+    Write-Output "  cn       : Use npmmirror.com (China)"
+    Write-Output "  official : Use npmjs.org"
     exit 0
 }
 
@@ -33,9 +33,9 @@ $ErrorActionPreference = "Stop"
 $bunfigPath = Join-Path $env:USERPROFILE ".bunfig.toml"
 $registryUrl = if ($Mirror -eq "cn") { "https://registry.npmmirror.com" } else { "https://registry.npmjs.org" }
 
-Write-Host "=== Configuring Bun Global Mirror ==="
-Write-Host "Target file: $bunfigPath"
-Write-Host "Selected Mirror: $Mirror ($registryUrl)"
+Write-Output "=== Configuring Bun Global Mirror ==="
+Write-Output "Target file: $bunfigPath"
+Write-Output "Selected Mirror: $Mirror ($registryUrl)"
 
 # Read existing content if file exists
 if (Test-Path $bunfigPath) {
@@ -60,22 +60,22 @@ $content = $content -replace "`r`n", "`n"
 if ($content -match '(?m)^registry\s*=\s*".*"') {
     # Replace existing registry line
     $content = $content -replace '(?m)^registry\s*=\s*".*"', "registry = `"$registryUrl`""
-    Write-Host "Updated existing registry configuration."
+    Write-Output "Updated existing registry configuration."
 } elseif ($content -match '(?m)^\[install\]') {
     # [install] exists but no registry line found (or at least not at top level of it if we assume standard formatting)
     # We'll insert it after [install]
     $content = $content -replace '(?m)^\[install\]', "[install]`nregistry = `"$registryUrl`""
-    Write-Host "Added registry configuration to existing [install] section."
+    Write-Output "Added registry configuration to existing [install] section."
 } else {
     # No [install] section found
     if ($content.Length -gt 0 -and -not $content.EndsWith("`n")) {
         $content += "`n"
     }
     $content += "[install]`nregistry = `"$registryUrl`"`n"
-    Write-Host "Created [install] section with registry configuration."
+    Write-Output "Created [install] section with registry configuration."
 }
 
 # Write back with UTF8 encoding
 $content | Out-File -FilePath $bunfigPath -Encoding utf8 -Force
 
-Write-Host "Configuration complete."
+Write-Output "Configuration complete."
