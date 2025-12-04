@@ -1,5 +1,7 @@
 # Node.js
 
+> **Note:** Before running the `.ps1` script, please run the `<workspace>/enable-ps1-permission.bat` script once to allow PowerShell script execution.
+
 This component installs Node.js (preferring the LTS build).
 
 ## Preferred installation (winget)

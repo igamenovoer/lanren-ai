@@ -1,5 +1,7 @@
 # Tavily MCP Server
 
+> **Note:** Before running the `.ps1` script, please run the `<workspace>/enable-ps1-permission.bat` script once to allow PowerShell script execution.
+
 This component installs the Tavily MCP server, which exposes Tavily’s search API to MCP-aware tools (e.g., Claude Code). For MCP servers, we generally prefer Node.js-based distributions from npm, optionally executed via Bun.
 
 ## Installation approach

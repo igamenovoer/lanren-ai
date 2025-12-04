@@ -1,5 +1,7 @@
 # Context7 MCP Server
 
+> **Note:** Before running the `.ps1` script, please run the `<workspace>/enable-ps1-permission.bat` script once to allow PowerShell script execution.
+
 This component installs and configures the Context7 MCP server for use with Claude Code and other MCP-aware clients. For MCP servers, we generally prefer Node.js-based distributions from npm, optionally executed via Bun.
 
 ## Installation approach

@@ -1,5 +1,7 @@
 # Windows Package Manager (winget)
 
+> **Note:** Before running the `.ps1` script, please run the `<workspace>/enable-ps1-permission.bat` script once to allow PowerShell script execution.
+
 This component ensures the Windows Package Manager (`winget`) is available, as many other components prefer winget when possible.
 
 ## Preferred installation (official)

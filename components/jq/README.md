@@ -1,5 +1,7 @@
 # jq (command-line JSON processor)
 
+> **Note:** Before running the `.ps1` script, please run the `<workspace>/enable-ps1-permission.bat` script once to allow PowerShell script execution.
+
 This component installs [`jq`](https://jqlang.org/), a lightweight and flexible command-line JSON processor.
 
 ## Preferred installation (winget)

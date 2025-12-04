@@ -1,5 +1,7 @@
 # MarkItDown (document → Markdown)
 
+> **Note:** Before running the `.ps1` script, please run the `<workspace>/enable-ps1-permission.bat` script once to allow PowerShell script execution.
+
 This component installs [MarkItDown](https://github.com/microsoft/markitdown), a Python tool and CLI for converting documents (PDF, Office, etc.) into Markdown for LLM workflows.
 
 ## Preferred installation (uv tool)

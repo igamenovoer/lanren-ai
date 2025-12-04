@@ -1,5 +1,7 @@
 # yq (YAML/JSON/XML processor)
 
+> **Note:** Before running the `.ps1` script, please run the `<workspace>/enable-ps1-permission.bat` script once to allow PowerShell script execution.
+
 This component installs [`yq`](https://github.com/mikefarah/yq), a lightweight and portable command-line YAML, JSON, and XML processor.
 
 ## Preferred installation (winget)

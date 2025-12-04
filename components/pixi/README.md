@@ -1,5 +1,7 @@
 # pixi (prefix.dev)
 
+> **Note:** Before running the `.ps1` script, please run the `<workspace>/enable-ps1-permission.bat` script once to allow PowerShell script execution.
+
 This component installs [pixi](https://pixi.sh), a cross-platform package and workflow manager from prefix.dev.
 
 ## Preferred installation (winget)

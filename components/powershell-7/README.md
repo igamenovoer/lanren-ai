@@ -1,5 +1,7 @@
 # PowerShell 7
 
+> **Note:** Before running the `.ps1` script, please run the `<workspace>/enable-ps1-permission.bat` script once to allow PowerShell script execution.
+
 This component installs PowerShell 7 (cross-platform PowerShell).
 
 ## Preferred installation (winget)

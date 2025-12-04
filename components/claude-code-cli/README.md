@@ -1,5 +1,7 @@
 # Claude Code CLI
 
+> **Note:** Before running the `.ps1` script, please run the `<workspace>/enable-ps1-permission.bat` script once to allow PowerShell script execution.
+
 This component installs the Claude Code CLI used by Anthropic’s Claude Code tooling.
 
 ## Preferred installation (requires Node.js)
@@ -10,7 +12,7 @@ This component installs the Claude Code CLI used by Anthropic’s Claude Code to
   npm install -g @anthropic-ai/claude-code
   ```
 
-After installation, Claude Code CLI normally launches an onboarding/login flow the first time you run `claude`. The per-component installer for `claude-code-cli` (its `install-comp.ps1` / `.bat` inside this directory) is responsible for marking onboarding as complete by updating `%USERPROFILE%\.claude.json` (setting `hasCompletedOnboarding = true`), so you can start using the CLI immediately without going through the login wizard on this machine.
+After installation, Claude Code CLI normally launches an onboarding/login flow the first time you run `claude`. The per-component installer for `claude-code-cli` (its `install-comp.ps1` inside this directory) is responsible for marking onboarding as complete by updating `%USERPROFILE%\.claude.json` (setting `hasCompletedOnboarding = true`), so you can start using the CLI immediately without going through the login wizard on this machine.
 
 ## China-friendly installation (npm mirrors)
 
