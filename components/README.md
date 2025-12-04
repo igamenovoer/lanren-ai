@@ -27,13 +27,20 @@ Where possible, component subdirectories should expose the following standard to
     - `-AcceptDefaults` (or similar) to run non-interactively (accepting defaults, passing “yes” flags to underlying installers where supported).
     - `-FromOfficial` (or `-UseOfficialSource`) to force use of official URLs even if a local accelerator/proxy is configured.
     - `-Force` to force a reinstall/repair even if the component appears to be already installed.
-    - `-CaptureLogFile <path>` to redirect all script output to a log file (for paired `.bat` wrappers or external callers to print later).
+    - `-CaptureLogFile <path>` to also write logs to a caller-provided path (for paired `.bat` wrappers or external callers to print later).
   - Contract:
     - All `install-comp.ps1` scripts must accept these standard switches (`-Proxy`, `-AcceptDefaults`, `-FromOfficial`, `-Force`, `-CaptureLogFile`), even if some of them are effectively no-ops for a given component.
 - Behavior:
   - Does not take an `--input-dir` / `-InputDir` parameter.
   - If the component is available via `winget`, installers should **prefer `winget` as the primary installation method**, using direct downloads or language-specific tools (`npm install`, `uv tool install`, etc.) only as a fallback when `winget` is unavailable or unsuitable.
-  - If manual downloads are required (e.g., MSI/ZIP/installer), the script fetches them into a system temp directory (for example `%TEMP%\lanren-<component>\`), using the provided proxy when applicable, then installs from there.
+  - Logging:
+    - Every `install-comp.ps1` and `config-comp.ps1` writes its log output to a component-scoped file under the system temp directory:
+      - Logs: `<system-temp>\lanren-ai\logs\<component-name>\<timestamp>.log`
+    - When `-CaptureLogFile` is provided, scripts continue to mirror their log output to the caller-specified path in addition to the standard log file.
+  - Manual downloads:
+    - If manual downloads are required (e.g., MSI/ZIP/installer, standalone scripts), the script saves them under a component-scoped packages directory:
+      - Packages: `<system-temp>\lanren-ai\packages\<component-name>\<filename>`
+    - Package managers such as `winget`, `npm`, `uv`, and `pixi` are allowed to manage their own download locations; the above packages directory is only for explicit direct downloads initiated by the scripts.
   - If the component can be installed directly via a package manager other than `winget` (e.g., `npm`, `uv`) and no `winget` package exists or is appropriate, it may install directly without any explicit download step, again honoring the proxy setting.
   - For components with widely used, stable China-based mirrors (e.g., Tsinghua/USTC mirrors, domestic artifact proxies), the script should prefer the China-based source by default and fall back to the official upstream URL if the mirror is unavailable. When no reliable mirror exists, the official source is used directly.
   - To override this behavior, all installers must support a “from official” option:

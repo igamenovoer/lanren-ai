@@ -1,11 +1,12 @@
 <#
 .SYNOPSIS
-Installs Node.js (LTS preferred) on Windows.
+Installs Node.js LTS on Windows.
 
 .DESCRIPTION
-Prefers installation via winget (`OpenJS.NodeJS.LTS`, then `OpenJS.NodeJS`).
-If winget is unavailable or fails, instructs the user on manual installation
-options, including China mirrors.
+Installs Node.js via winget using the LTS channel
+(`OpenJS.NodeJS.LTS`). If winget is unavailable or the LTS package
+cannot be installed, instructs the user on manual installation options,
+including China mirrors.
 
 .PARAMETER Proxy
 Optional HTTP/HTTPS proxy URL to use for winget and downloads.
@@ -32,6 +33,61 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+$script:LanrenComponentName = Split-Path -Leaf $PSScriptRoot
+if (-not $script:LanrenComponentName) { $script:LanrenComponentName = "nodejs" }
+
+function Get-LanrenAiRoot {
+    [System.IO.Path]::Combine([System.IO.Path]::GetTempPath(), "lanren-ai")
+}
+
+function Get-LanrenComponentLogFile {
+    param(
+        [string]$ComponentName
+    )
+
+    if (-not $ComponentName) {
+        $ComponentName = $script:LanrenComponentName
+    }
+
+    $root = Get-LanrenAiRoot
+    $logDir = Join-Path $root ("logs\" + $ComponentName)
+    if (-not (Test-Path $logDir)) {
+        New-Item -ItemType Directory -Path $logDir -Force | Out-Null
+    }
+
+    $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
+    Join-Path $logDir ("$ComponentName-$timestamp.log")
+}
+
+function Get-LanrenComponentPackagePath {
+    param(
+        [string]$FileName,
+        [string]$ComponentName
+    )
+
+    if (-not $ComponentName) {
+        $ComponentName = $script:LanrenComponentName
+    }
+
+    $root = Get-LanrenAiRoot
+    $pkgDir = Join-Path $root ("packages\" + $ComponentName)
+    if (-not (Test-Path $pkgDir)) {
+        New-Item -ItemType Directory -Path $pkgDir -Force | Out-Null
+    }
+
+    if ($FileName) {
+        return Join-Path $pkgDir $FileName
+    }
+
+    return $pkgDir
+}
+
+$script:LanrenDefaultLogFile = Get-LanrenComponentLogFile -ComponentName $script:LanrenComponentName
+$script:LanrenLogFiles = @($script:LanrenDefaultLogFile)
+if ($CaptureLogFile) {
+    $script:LanrenLogFiles += $CaptureLogFile
+}
+
 $lines = @()
 $lines += ""
 $lines += "=== Installing Node.js (LTS) ==="
@@ -43,8 +99,24 @@ function Write-OutputLine {
         [string]$LogFile
     )
 
-    if ($LogFile) {
-        $Content -join "`r`n" | Out-File -FilePath $LogFile -Encoding Default -Force
+    $targets = @()
+    if ($script:LanrenLogFiles) {
+        $targets = $script:LanrenLogFiles
+    } elseif ($LogFile) {
+        $targets = @($LogFile)
+    }
+
+    if ($targets.Count -gt 0) {
+        $text = $Content -join "`r`n"
+        foreach ($t in $targets) {
+            if (-not [string]::IsNullOrWhiteSpace($t)) {
+                $dir = Split-Path -Parent $t
+                if ($dir -and -not (Test-Path $dir)) {
+                    New-Item -ItemType Directory -Path $dir -Force | Out-Null
+                }
+                $text | Out-File -FilePath $t -Encoding Default -Force
+            }
+        }
     } else {
         $Content | ForEach-Object { Write-Output $_ }
     }
@@ -74,25 +146,23 @@ try {
 
     $wingetCmd = Get-Command winget -ErrorAction SilentlyContinue
     if ($wingetCmd) {
-        $ids = @("OpenJS.NodeJS.LTS","OpenJS.NodeJS")
-        foreach ($id in $ids) {
-            $wingetArgs = @("install","-e","--id",$id)
-            if ($AcceptDefaults) {
-                $wingetArgs += @("--accept-source-agreements","--accept-package-agreements")
-            }
-
-            $lines += "Running: winget $($wingetArgs -join ' ')"
-            & winget @wingetArgs
-            $exitCode = $LASTEXITCODE
-
-            if ($exitCode -eq 0 -and (Test-ToolOnPath -CommandName "node")) {
-                $lines += "Node.js installed successfully via winget (id=$id)."
-                Write-OutputLine -Content $lines -LogFile $CaptureLogFile
-                exit 0
-            }
-
-            $lines += "winget install (id=$id) did not complete successfully (exit code $exitCode)."
+        $nodeLtsId = "OpenJS.NodeJS.LTS"
+        $wingetArgs = @("install","-e","--id",$nodeLtsId)
+        if ($AcceptDefaults) {
+            $wingetArgs += @("--accept-source-agreements","--accept-package-agreements")
         }
+
+        $lines += "Running: winget $($wingetArgs -join ' ')"
+        & winget @wingetArgs
+        $exitCode = $LASTEXITCODE
+
+        if ($exitCode -eq 0 -and (Test-ToolOnPath -CommandName "node")) {
+            $lines += "Node.js (LTS) installed successfully via winget (id=$nodeLtsId)."
+            Write-OutputLine -Content $lines -LogFile $CaptureLogFile
+            exit 0
+        }
+
+        $lines += "winget install for Node.js (LTS) did not complete successfully (exit code $exitCode)."
     } else {
         $lines += "winget is not available; cannot perform automatic Node.js installation."
     }

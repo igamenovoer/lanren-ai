@@ -1,39 +1,26 @@
 <#
 .SYNOPSIS
-Installs MarkItDown via uv.
+Installs common Visual Studio Code extensions.
 
 .DESCRIPTION
-Uses `uv tool install markitdown --with "markitdown[all]"`, preferring a China
-PyPI mirror by default and falling back to the official index when needed.
-
-.PARAMETER Proxy
-Optional HTTP/HTTPS proxy URL to use for uv network access.
-
-.PARAMETER AcceptDefaults
-When specified, runs non-interactively and accepts sensible defaults. This
-script itself does not prompt.
-
-.PARAMETER FromOfficial
-When specified, forces use of the official PyPI index instead of China mirrors.
+Uses the VS Code CLI (`code`) to install a curated set of extensions,
+including Python, Git tooling, Markdown preview, CSV/Excel helpers,
+and coding agents (OpenAI Codex, Claude Code, and Cline).
 
 .PARAMETER CaptureLogFile
-Optional log file path. When provided, all output is written here using the
-console default encoding so a .bat wrapper can print it.
+Optional log file path. When provided, all output is written here using
+the console default encoding so a .bat wrapper can print it.
 #>
 
 [CmdletBinding()]
 param(
-    [string]$Proxy,
-    [switch]$AcceptDefaults,
-    [switch]$FromOfficial,
-    [switch]$Force,
     [string]$CaptureLogFile
 )
 
 $ErrorActionPreference = "Stop"
 
 $script:LanrenComponentName = Split-Path -Leaf $PSScriptRoot
-if (-not $script:LanrenComponentName) { $script:LanrenComponentName = "markitdown" }
+if (-not $script:LanrenComponentName) { $script:LanrenComponentName = "vscode" }
 
 function Get-LanrenAiRoot {
     [System.IO.Path]::Combine([System.IO.Path]::GetTempPath(), "lanren-ai")
@@ -87,11 +74,9 @@ if ($CaptureLogFile) {
     $script:LanrenLogFiles += $CaptureLogFile
 }
 
-$null = $AcceptDefaults
-
 $lines = @()
 $lines += ""
-$lines += "=== Installing MarkItDown (via uv tool) ==="
+$lines += "=== Installing Visual Studio Code extensions ==="
 $lines += ""
 
 function Write-OutputLine {
@@ -132,58 +117,41 @@ function Test-ToolOnPath {
 }
 
 try {
-    if (-not (Test-ToolOnPath -CommandName "uv")) {
-        $lines += "Error: uv is not available on PATH."
-        $lines += "Install uv first (see components/uv/install-comp)."
+    if (-not (Test-ToolOnPath -CommandName "code")) {
+        $lines += "VS Code CLI 'code' not found on PATH. Skipping extension installation."
         Write-OutputLine -Content $lines -LogFile $CaptureLogFile
         exit 1
     }
 
-    if ((Test-ToolOnPath -CommandName "markitdown") -and -not $Force) {
-        $lines += "MarkItDown is already available on PATH. Use -Force to reinstall."
-        Write-OutputLine -Content $lines -LogFile $CaptureLogFile
-        exit 0
+    $extensions = @(
+        # Python extension
+        "ms-python.python",
+        # Git extension (GitLens)
+        "eamodio.gitlens",
+        # Markdown Preview Enhanced
+        "shd101wyy.markdown-preview-enhanced",
+        # Rainbow CSV
+        "mechatroner.rainbow-csv",
+        # Excel Viewer
+        "GrapeCity.gc-excelviewer",
+        # OpenAI Codex (Codex - OpenAI's coding agent)
+        "openai.chatgpt",
+        # Claude Code
+        "anthropic.claude-code",
+        # Cline
+        "saoudrizwan.claude-dev"
+    )
+
+    foreach ($ext in $extensions) {
+        try {
+            $lines += "Installing VS Code extension: $ext"
+            code --install-extension $ext --force | Out-Null
+        } catch {
+            $lines += "Failed to install VS Code extension ${ext}: $($_.Exception.Message)"
+        }
     }
-
-    if ($Proxy) {
-        $env:HTTP_PROXY = $Proxy
-        $env:HTTPS_PROXY = $Proxy
-        $lines += "Using proxy for uv/network: $Proxy"
-    }
-
-    $primaryIndex = "https://pypi.tuna.tsinghua.edu.cn/simple"
-
-    if ($FromOfficial) {
-        $lines += "Using official PyPI index (uv default)."
-        Remove-Item Env:UV_INDEX_URL -ErrorAction SilentlyContinue
-    } else {
-        $env:UV_INDEX_URL = $primaryIndex
-        $lines += "Using China PyPI mirror via UV_INDEX_URL: $primaryIndex"
-        $lines += "Will fall back to official index if the mirror fails."
-    }
-
-    $installArgs = @("tool","install","markitdown","--with","markitdown[all]")
-    $lines += "Running: uv $($installArgs -join ' ')"
-    & uv @installArgs
-    $exitCode = $LASTEXITCODE
-
-    if ($exitCode -ne 0 -and -not $FromOfficial) {
-        $lines += "uv tool install via mirror failed (exit code $exitCode)."
-        $lines += "Retrying against official PyPI (without UV_INDEX_URL)."
-        Remove-Item Env:UV_INDEX_URL -ErrorAction SilentlyContinue
-        & uv @installArgs
-        $exitCode = $LASTEXITCODE
-    }
-
-    if ($exitCode -ne 0) {
-        $lines += "Error: uv failed to install MarkItDown (exit code $exitCode)."
-        Write-OutputLine -Content $lines -LogFile $CaptureLogFile
-        exit 1
-    }
-
-    $lines += "MarkItDown installed successfully via uv tool."
 } catch {
-    $lines += "Error installing MarkItDown: $($_.Exception.Message)"
+    $lines += "Error installing VS Code extensions: $($_.Exception.Message)"
     Write-OutputLine -Content $lines -LogFile $CaptureLogFile
     exit 1
 }

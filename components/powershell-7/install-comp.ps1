@@ -31,11 +31,68 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+$script:LanrenComponentName = Split-Path -Leaf $PSScriptRoot
+if (-not $script:LanrenComponentName) { $script:LanrenComponentName = "powershell-7" }
+
+function Get-LanrenAiRoot {
+    [System.IO.Path]::Combine([System.IO.Path]::GetTempPath(), "lanren-ai")
+}
+
+function Get-LanrenComponentLogFile {
+    param(
+        [string]$ComponentName
+    )
+
+    if (-not $ComponentName) {
+        $ComponentName = $script:LanrenComponentName
+    }
+
+    $root = Get-LanrenAiRoot
+    $logDir = Join-Path $root ("logs\" + $ComponentName)
+    if (-not (Test-Path $logDir)) {
+        New-Item -ItemType Directory -Path $logDir -Force | Out-Null
+    }
+
+    $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
+    Join-Path $logDir ("$ComponentName-$timestamp.log")
+}
+
+function Get-LanrenComponentPackagePath {
+    param(
+        [string]$FileName,
+        [string]$ComponentName
+    )
+
+    if (-not $ComponentName) {
+        $ComponentName = $script:LanrenComponentName
+    }
+
+    $root = Get-LanrenAiRoot
+    $pkgDir = Join-Path $root ("packages\" + $ComponentName)
+    if (-not (Test-Path $pkgDir)) {
+        New-Item -ItemType Directory -Path $pkgDir -Force | Out-Null
+    }
+
+    if ($FileName) {
+        return Join-Path $pkgDir $FileName
+    }
+
+    return $pkgDir
+}
+
+$script:LanrenDefaultLogFile = Get-LanrenComponentLogFile -ComponentName $script:LanrenComponentName
+$script:LanrenLogFiles = @($script:LanrenDefaultLogFile)
+if ($CaptureLogFile) {
+    $script:LanrenLogFiles += $CaptureLogFile
+}
+
+$powershellLtsVersion = "7.4.13.0"
+
 $null = $FromOfficial
 
 $lines = @()
 $lines += ""
-$lines += "=== Installing PowerShell 7 ==="
+$lines += "=== Installing PowerShell 7 (LTS) ==="
 $lines += ""
 
 function Write-OutputLine {
@@ -44,8 +101,24 @@ function Write-OutputLine {
         [string]$LogFile
     )
 
-    if ($LogFile) {
-        $Content -join "`r`n" | Out-File -FilePath $LogFile -Encoding Default -Force
+    $targets = @()
+    if ($script:LanrenLogFiles) {
+        $targets = $script:LanrenLogFiles
+    } elseif ($LogFile) {
+        $targets = @($LogFile)
+    }
+
+    if ($targets.Count -gt 0) {
+        $text = $Content -join "`r`n"
+        foreach ($t in $targets) {
+            if (-not [string]::IsNullOrWhiteSpace($t)) {
+                $dir = Split-Path -Parent $t
+                if ($dir -and -not (Test-Path $dir)) {
+                    New-Item -ItemType Directory -Path $dir -Force | Out-Null
+                }
+                $text | Out-File -FilePath $t -Encoding Default -Force
+            }
+        }
     } else {
         $Content | ForEach-Object { Write-Output $_ }
     }
@@ -75,22 +148,28 @@ try {
 
     $wingetCmd = Get-Command winget -ErrorAction SilentlyContinue
     if ($wingetCmd) {
-        $wingetArgs = @("install","-e","--id","Microsoft.PowerShell")
+        $wingetArgs = @(
+            "install",
+            "-e",
+            "--id","Microsoft.PowerShell",
+            "--version",$powershellLtsVersion
+        )
         if ($AcceptDefaults) {
             $wingetArgs += @("--accept-source-agreements","--accept-package-agreements")
         }
 
+        $lines += "Target LTS version: $powershellLtsVersion"
         $lines += "Running: winget $($wingetArgs -join ' ')"
         & winget @wingetArgs
         $exitCode = $LASTEXITCODE
 
         if ($exitCode -eq 0 -and (Test-ToolOnPath -CommandName "pwsh")) {
-            $lines += "PowerShell 7 installed successfully via winget."
+            $lines += "PowerShell 7 (LTS) installed successfully via winget."
             Write-OutputLine -Content $lines -LogFile $CaptureLogFile
             exit 0
         }
 
-        $lines += "winget install for PowerShell 7 did not complete successfully (exit code $exitCode)."
+        $lines += "winget install for PowerShell 7 (LTS) did not complete successfully (exit code $exitCode)."
     } else {
         $lines += "winget is not available; cannot perform automatic PowerShell 7 installation."
     }

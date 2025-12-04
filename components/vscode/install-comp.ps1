@@ -1,26 +1,14 @@
 <#
 .SYNOPSIS
-Installs Visual Studio Code on Windows.
+Entry point for the VS Code component.
 
 .DESCRIPTION
-Prefers installation via winget and attempts to enable Explorer context menu
-entries by using an installer override when possible. If winget is unavailable
-or fails, instructs the user on manual installation from official or China CDN
-sources.
-
-.PARAMETER Proxy
-Optional HTTP/HTTPS proxy URL to use for winget and downloads.
-
-.PARAMETER AcceptDefaults
-When specified, passes non-interactive flags to winget where applicable.
-
-.PARAMETER FromOfficial
-When specified, prefers the official VS Code download site (`code.visualstudio.com`)
-over China CDNs in guidance.
-
-.PARAMETER CaptureLogFile
-Optional log file path. When provided, all output is written here using the
-console default encoding so a .bat wrapper can print it.
+For backward compatibility, this script now orchestrates the full
+VS Code setup:
+- Installs the VS Code application (`install-vscode-app.ps1`)
+- Configures the Explorer "Open in VS Code" context menu
+  (`config-context-menu.ps1`)
+- Installs common VS Code extensions (`install-extensions.ps1`)
 #>
 
 [CmdletBinding()]
@@ -34,83 +22,34 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$lines = @()
-$lines += ""
-$lines += "=== Installing Visual Studio Code ==="
-$lines += ""
+$appScript   = Join-Path -Path $PSScriptRoot -ChildPath "install-vscode-app.ps1"
+$menuScript  = Join-Path -Path $PSScriptRoot -ChildPath "config-context-menu.ps1"
+$extScript   = Join-Path -Path $PSScriptRoot -ChildPath "install-extensions.ps1"
 
-function Write-OutputLine {
-    param(
-        [string[]]$Content,
-        [string]$LogFile
-    )
-
-    if ($LogFile) {
-        $Content -join "`r`n" | Out-File -FilePath $LogFile -Encoding Default -Force
-    } else {
-        $Content | ForEach-Object { Write-Output $_ }
-    }
+if (-not (Test-Path $appScript)) {
+    Write-Error "install-vscode-app.ps1 not found in $PSScriptRoot."
+    exit 1
 }
-
-try {
-    $codeCmd = Get-Command code -ErrorAction SilentlyContinue
-    if ($codeCmd -and -not $Force) {
-        $lines += "Visual Studio Code is already available on PATH (code command found). Use -Force to reinstall."
-        $lines += "No installation performed."
-        Write-OutputLine -Content $lines -LogFile $CaptureLogFile
-        exit 0
-    }
-
-    if ($Proxy) {
-        $env:HTTP_PROXY = $Proxy
-        $env:HTTPS_PROXY = $Proxy
-        $lines += "Using proxy for winget/network: $Proxy"
-    }
-
-    $wingetCmd = Get-Command winget -ErrorAction SilentlyContinue
-    if ($wingetCmd) {
-        $wingetArgs = @(
-            "install",
-            "--id","Microsoft.VisualStudioCode"
-        )
-
-        if ($AcceptDefaults) {
-            $wingetArgs += @("--accept-source-agreements","--accept-package-agreements")
-        }
-
-        $override = '/VERYSILENT /SP- /MERGETASKS="addcontextmenufiles,addcontextmenufolders,associatewithfiles,addtopath"'
-        $wingetArgs += @("--override",$override)
-
-        $lines += "Running: winget $($wingetArgs -join ' ')"
-        & winget @wingetArgs
-        $exitCode = $LASTEXITCODE
-
-        if ($exitCode -eq 0) {
-            $lines += "VS Code installed successfully via winget."
-            $lines += "Explorer context menus and PATH should be enabled via installer override."
-            Write-OutputLine -Content $lines -LogFile $CaptureLogFile
-            exit 0
-        }
-
-        $lines += "winget install for VS Code did not complete successfully (exit code $exitCode)."
-    } else {
-        $lines += "winget is not available; cannot perform automatic VS Code installation."
-    }
-
-    $lines += ""
-    $lines += "Manual installation guidance:"
-    if (-not $FromOfficial) {
-        $lines += "- China CDN (preferred when available): https://vscode.cdn.azure.cn/"
-    }
-    $lines += "- Official download page: https://code.visualstudio.com/Download"
-    $lines += ""
-    $lines += "Download the User Setup installer (VSCodeUserSetup-*.exe) and run it with, for example:"
-    $lines += '  .\VSCodeUserSetup-*.exe /VERYSILENT /NORESTART /MERGETASKS="addcontextmenufiles,addcontextmenufolders,addtopath"'
-} catch {
-    $lines += "Error installing Visual Studio Code: $($_.Exception.Message)"
-    Write-OutputLine -Content $lines -LogFile $CaptureLogFile
+if (-not (Test-Path $menuScript)) {
+    Write-Error "config-context-menu.ps1 not found in $PSScriptRoot."
+    exit 1
+}
+if (-not (Test-Path $extScript)) {
+    Write-Error "install-extensions.ps1 not found in $PSScriptRoot."
     exit 1
 }
 
-Write-OutputLine -Content $lines -LogFile $CaptureLogFile
-exit 1
+& $appScript -Proxy $Proxy -AcceptDefaults:$AcceptDefaults -FromOfficial:$FromOfficial -Force:$Force -CaptureLogFile $CaptureLogFile
+$appExit = $LASTEXITCODE
+if ($appExit -ne 0) {
+    exit $appExit
+}
+
+& $menuScript -CaptureLogFile $CaptureLogFile
+$menuExit = $LASTEXITCODE
+if ($menuExit -ne 0) {
+    exit $menuExit
+}
+
+& $extScript -CaptureLogFile $CaptureLogFile
+exit $LASTEXITCODE

@@ -1,10 +1,13 @@
 <#
 .SYNOPSIS
-Installs pixi (prefix.dev) on Windows.
+Installs the Visual Studio Code application on Windows.
 
 .DESCRIPTION
-Prefers installation via winget. If winget is unavailable or fails, attempts
-to run the official pixi install script.
+Prefers installation via winget. If winget is unavailable or fails,
+instructs the user on manual installation from official or China CDN
+sources. This script is responsible only for installing the VS Code
+application; context menu and extension setup are handled by separate
+scripts and orchestrated by `install-comp.ps1`.
 
 .PARAMETER Proxy
 Optional HTTP/HTTPS proxy URL to use for winget and downloads.
@@ -13,12 +16,16 @@ Optional HTTP/HTTPS proxy URL to use for winget and downloads.
 When specified, passes non-interactive flags to winget where applicable.
 
 .PARAMETER FromOfficial
-When specified, prefers official pixi URLs. For pixi this is already the
-default.
+When specified, prefers the official VS Code download site
+(`code.visualstudio.com`) over China CDNs in guidance.
+
+.PARAMETER Force
+When specified, reinstalls VS Code even if the `code` CLI is already
+available on PATH.
 
 .PARAMETER CaptureLogFile
-Optional log file path. When provided, all output is written here using the
-console default encoding so a .bat wrapper can print it.
+Optional log file path. When provided, all output is written here using
+the console default encoding so a .bat wrapper can print it.
 #>
 
 [CmdletBinding()]
@@ -33,7 +40,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $script:LanrenComponentName = Split-Path -Leaf $PSScriptRoot
-if (-not $script:LanrenComponentName) { $script:LanrenComponentName = "pixi" }
+if (-not $script:LanrenComponentName) { $script:LanrenComponentName = "vscode" }
 
 function Get-LanrenAiRoot {
     [System.IO.Path]::Combine([System.IO.Path]::GetTempPath(), "lanren-ai")
@@ -87,11 +94,9 @@ if ($CaptureLogFile) {
     $script:LanrenLogFiles += $CaptureLogFile
 }
 
-$null = $FromOfficial
-
 $lines = @()
 $lines += ""
-$lines += "=== Installing pixi (prefix.dev) ==="
+$lines += "=== Installing Visual Studio Code (app) ==="
 $lines += ""
 
 function Write-OutputLine {
@@ -123,18 +128,11 @@ function Write-OutputLine {
     }
 }
 
-function Test-ToolOnPath {
-    param(
-        [string]$CommandName
-    )
-    $cmd = Get-Command $CommandName -ErrorAction SilentlyContinue
-    return [bool]$cmd
-}
-
 try {
-    if ((Test-ToolOnPath -CommandName "pixi") -and -not $Force) {
-        $lines += "pixi is already available on PATH. Use -Force to reinstall."
-        $lines += "No installation performed."
+    $codeCmd = Get-Command code -ErrorAction SilentlyContinue
+    if ($codeCmd -and -not $Force) {
+        $lines += "Visual Studio Code is already available on PATH (code command found). Use -Force to reinstall."
+        $lines += "No installation performed by install-vscode-app.ps1."
         Write-OutputLine -Content $lines -LogFile $CaptureLogFile
         exit 0
     }
@@ -146,66 +144,49 @@ try {
     }
 
     $wingetCmd = Get-Command winget -ErrorAction SilentlyContinue
-    $installed = $false
-
     if ($wingetCmd) {
-        $wingetArgs = @("install","-e","--id","prefix-dev.pixi")
+        $wingetArgs = @(
+            "install",
+            "--id","Microsoft.VisualStudioCode"
+        )
+
         if ($AcceptDefaults) {
             $wingetArgs += @("--accept-source-agreements","--accept-package-agreements")
         }
+
+        $override = '/VERYSILENT /SP- /MERGETASKS="addcontextmenufiles,addcontextmenufolders,associatewithfiles,addtopath"'
+        $wingetArgs += @("--override",$override)
 
         $lines += "Running: winget $($wingetArgs -join ' ')"
         & winget @wingetArgs
         $exitCode = $LASTEXITCODE
 
-        if ($exitCode -eq 0 -and (Test-ToolOnPath -CommandName "pixi")) {
-            $lines += "pixi installed successfully via winget."
-            $installed = $true
-        } else {
-            $lines += "winget install for pixi did not complete successfully (exit code $exitCode)."
-        }
-    } else {
-        $lines += "winget is not available; attempting official pixi install script."
-    }
-
-    if (-not $installed) {
-        if ($Proxy) {
-            $env:HTTP_PROXY = $Proxy
-            $env:HTTPS_PROXY = $Proxy
-        }
-
-        $installerUrl = "https://pixi.sh/install.ps1"
-        $installerPath = Get-LanrenComponentPackagePath -FileName "pixi-install.ps1"
-
-        $lines += "Downloading official pixi installer script from $installerUrl ..."
-        $invokeParams = @{
-            Uri             = $installerUrl
-            OutFile         = $installerPath
-            UseBasicParsing = $true
-        }
-        if ($Proxy) {
-            $invokeParams["Proxy"] = $Proxy
-            $invokeParams["ProxyUseDefaultCredentials"] = $true
-        }
-
-        Invoke-WebRequest @invokeParams
-
-        $lines += "Running pixi installer script: $installerPath"
-        powershell -NoProfile -ExecutionPolicy Bypass -File $installerPath
-
-        if ($LASTEXITCODE -ne 0 -or -not (Test-ToolOnPath -CommandName "pixi")) {
-            $lines += "Error: pixi install script did not succeed (exit code $LASTEXITCODE)."
+        if ($exitCode -eq 0) {
+            $lines += "VS Code installed successfully via winget."
+            $lines += "Installer override requested Explorer context menus and PATH integration."
             Write-OutputLine -Content $lines -LogFile $CaptureLogFile
-            exit 1
+            exit 0
         }
 
-        $lines += "pixi installed successfully via official install script."
+        $lines += "winget install for VS Code did not complete successfully (exit code $exitCode)."
+    } else {
+        $lines += "winget is not available; cannot perform automatic VS Code installation."
     }
+
+    $lines += ""
+    $lines += "Manual installation guidance:"
+    if (-not $FromOfficial) {
+        $lines += "- China CDN (preferred when available): https://vscode.cdn.azure.cn/"
+    }
+    $lines += "- Official download page: https://code.visualstudio.com/Download"
+    $lines += ""
+    $lines += "Download the User Setup installer (VSCodeUserSetup-*.exe) and run it with, for example:"
+    $lines += '  .\VSCodeUserSetup-*.exe /VERYSILENT /NORESTART /MERGETASKS="addcontextmenufiles,addcontextmenufolders,addtopath"'
 } catch {
-    $lines += "Error installing pixi: $($_.Exception.Message)"
+    $lines += "Error installing Visual Studio Code: $($_.Exception.Message)"
     Write-OutputLine -Content $lines -LogFile $CaptureLogFile
     exit 1
 }
 
 Write-OutputLine -Content $lines -LogFile $CaptureLogFile
-exit 0
+exit 1
