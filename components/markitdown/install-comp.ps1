@@ -26,6 +26,7 @@ param(
     [string]$Proxy,
     [switch]$AcceptDefaults,
     [switch]$FromOfficial,
+    [switch]$Force,
     [string]$CaptureLogFile
 )
 
@@ -63,6 +64,12 @@ try {
         $lines += "Install uv first (see components/uv/install-comp)."
         Write-OutputLines -Content $lines -LogFile $CaptureLogFile
         exit 1
+    }
+
+    if ((Ensure-ToolOnPath -CommandName "markitdown") -and -not $Force) {
+        $lines += "MarkItDown is already available on PATH. Use -Force to reinstall."
+        Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+        exit 0
     }
 
     if ($Proxy) {

@@ -28,6 +28,7 @@ param(
     [string]$Proxy,
     [switch]$AcceptDefaults,
     [switch]$FromOfficial,
+    [switch]$Force,
     [string]$CaptureLogFile
 )
 
@@ -52,6 +53,14 @@ function Write-OutputLines {
 }
 
 try {
+    $codeCmd = Get-Command code -ErrorAction SilentlyContinue
+    if ($codeCmd -and -not $Force) {
+        $lines += "Visual Studio Code is already available on PATH (code command found). Use -Force to reinstall."
+        $lines += "No installation performed."
+        Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+        exit 0
+    }
+
     if ($Proxy) {
         $env:HTTP_PROXY = $Proxy
         $env:HTTPS_PROXY = $Proxy

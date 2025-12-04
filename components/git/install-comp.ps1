@@ -26,6 +26,7 @@ param(
     [string]$Proxy,
     [switch]$AcceptDefaults,
     [switch]$FromOfficial,
+    [switch]$Force,
     [string]$CaptureLogFile
 )
 
@@ -58,8 +59,8 @@ function Ensure-ToolOnPath {
 }
 
 try {
-    if (Ensure-ToolOnPath -CommandName "git") {
-        $lines += "Git is already available on PATH (git command found)."
+    if ((Ensure-ToolOnPath -CommandName "git") -and -not $Force) {
+        $lines += "Git is already available on PATH (git command found). Use -Force to reinstall."
         $lines += "No installation performed."
         Write-OutputLines -Content $lines -LogFile $CaptureLogFile
         exit 0

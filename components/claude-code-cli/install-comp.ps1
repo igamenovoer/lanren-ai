@@ -29,6 +29,7 @@ param(
     [string]$Proxy,
     [switch]$AcceptDefaults,
     [switch]$FromOfficial,
+    [switch]$Force,
     [string]$CaptureLogFile
 )
 
@@ -73,6 +74,12 @@ try {
         $lines += "Reinstall Node.js with npm support and try again."
         Write-OutputLines -Content $lines -LogFile $CaptureLogFile
         exit 1
+    }
+
+    if ((Ensure-ToolOnPath -CommandName "claude") -and -not $Force) {
+        $lines += "Claude Code CLI is already available on PATH. Use -Force to reinstall."
+        Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+        exit 0
     }
 
     if ($Proxy) {

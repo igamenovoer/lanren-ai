@@ -4,7 +4,9 @@ Ensures the Windows Package Manager (winget) is available.
 
 .DESCRIPTION
 Checks for the `winget` command and, if missing, downloads and installs the
-App Installer package from Microsoft (https://aka.ms/getwinget).
+App Installer package. It attempts to download from a China-friendly mirror
+(GitHub Proxy) first, and falls back to the official Microsoft source
+(https://aka.ms/getwinget) if that fails.
 
 .PARAMETER Proxy
 Optional HTTP/HTTPS proxy URL to use for downloading App Installer.
@@ -27,6 +29,7 @@ param(
     [string]$Proxy,
     [switch]$AcceptDefaults,
     [switch]$FromOfficial,
+    [switch]$Force,
     [string]$CaptureLogFile
 )
 
@@ -52,36 +55,82 @@ function Write-OutputLines {
 
 try {
     $wingetCmd = Get-Command winget -ErrorAction SilentlyContinue
-    if ($wingetCmd) {
-        $lines += "winget is already available on this system."
+    if ($wingetCmd -and -not $Force) {
+        $lines += "winget is already available on this system. Use -Force to reinstall."
         Write-OutputLines -Content $lines -LogFile $CaptureLogFile
         exit 0
     }
 
-    $lines += "winget is not available; attempting to install App Installer from Microsoft."
+    $lines += "winget is not available (or -Force used); attempting to install App Installer."
 
-    $downloadUrl = "https://aka.ms/getwinget"
     $tempDir = [System.IO.Path]::GetTempPath()
     $fileName = "AppInstaller.msixbundle"
     $outFile = Join-Path $tempDir $fileName
 
-    $lines += "Downloading App Installer from: $downloadUrl"
-
-    $invokeParams = @{
-        Uri             = $downloadUrl
-        OutFile         = $outFile
-        UseBasicParsing = $true
+    # Try to resolve the latest URL for the mirror
+    $latestWingetUrl = $null
+    try {
+        $lines += "Resolving latest winget version from GitHub API..."
+        $release = Invoke-RestMethod -Uri "https://api.github.com/repos/microsoft/winget-cli/releases/latest" -UseBasicParsing -ErrorAction Stop
+        $asset = $release.assets | Where-Object { $_.name -like "*.msixbundle" } | Select-Object -First 1
+        if ($asset) {
+            $latestWingetUrl = $asset.browser_download_url
+            $lines += "Resolved latest version URL: $latestWingetUrl"
+        }
+    } catch {
+        $lines += "Failed to resolve latest version via GitHub API: $($_.Exception.Message)"
+        $lines += "Skipping GitHub Proxy mirror."
     }
-    if ($Proxy) {
-        $invokeParams["Proxy"] = $Proxy
-        $invokeParams["ProxyUseDefaultCredentials"] = $true
-        $lines += "Using proxy: $Proxy"
+
+    # Define sources: Mirror first (if resolved), then Official
+    $sources = @()
+
+    if ($latestWingetUrl) {
+        $sources += @{
+            Name = "GitHub Proxy (China Mirror)"
+            Url  = "https://mirror.ghproxy.com/$latestWingetUrl"
+        }
     }
 
-    Invoke-WebRequest @invokeParams
+    $sources += @{
+        Name = "Microsoft Official (aka.ms)"
+        Url  = "https://aka.ms/getwinget"
+    }
 
-    $lines += "Download complete. Installing App Installer from: $outFile"
-    Add-AppxPackage -Path $outFile
+    $installed = $false
+
+    foreach ($source in $sources) {
+        try {
+            $lines += "Attempting download from $($source.Name): $($source.Url)"
+            
+            $invokeParams = @{
+                Uri             = $source.Url
+                OutFile         = $outFile
+                UseBasicParsing = $true
+                ErrorAction     = "Stop"
+            }
+            if ($Proxy) {
+                $invokeParams["Proxy"] = $Proxy
+                $invokeParams["ProxyUseDefaultCredentials"] = $true
+                $lines += "Using proxy: $Proxy"
+            }
+
+            Invoke-WebRequest @invokeParams
+            
+            $lines += "Download complete. Installing App Installer from: $outFile"
+            Add-AppxPackage -Path $outFile -ErrorAction Stop
+            
+            $installed = $true
+            break # Success, exit loop
+        } catch {
+            $lines += "Failed to install from $($source.Name): $($_.Exception.Message)"
+            $lines += "Trying next source..."
+        }
+    }
+
+    if (-not $installed) {
+        throw "All installation attempts failed."
+    }
 
     $wingetCmd = Get-Command winget -ErrorAction SilentlyContinue
     if ($wingetCmd) {

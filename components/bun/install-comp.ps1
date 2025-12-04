@@ -29,6 +29,7 @@ param(
     [string]$Proxy,
     [switch]$AcceptDefaults,
     [switch]$FromOfficial,
+    [switch]$Force,
     [string]$CaptureLogFile
 )
 
@@ -54,8 +55,8 @@ function Write-OutputLines {
 
 try {
     $existing = Get-Command bun -ErrorAction SilentlyContinue
-    if ($existing) {
-        $lines += "Bun is already available on PATH (bun command found)."
+    if ($existing -and -not $Force) {
+        $lines += "Bun is already available on PATH (bun command found). Use -Force to reinstall."
         $lines += "No installation performed."
         Write-OutputLines -Content $lines -LogFile $CaptureLogFile
         exit 0

@@ -26,6 +26,7 @@ param(
     [string]$Proxy,
     [switch]$AcceptDefaults,
     [switch]$FromOfficial,
+    [switch]$Force,
     [string]$CaptureLogFile
 )
 
@@ -58,8 +59,8 @@ function Ensure-ToolOnPath {
 }
 
 try {
-    if (Ensure-ToolOnPath -CommandName "aria2c") {
-        $lines += "aria2 is already available on PATH (aria2c command found)."
+    if ((Ensure-ToolOnPath -CommandName "aria2c") -and -not $Force) {
+        $lines += "aria2 is already available on PATH (aria2c command found). Use -Force to reinstall."
         $lines += "No installation performed."
         Write-OutputLines -Content $lines -LogFile $CaptureLogFile
         exit 0

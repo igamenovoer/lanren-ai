@@ -26,6 +26,7 @@ param(
     [string]$Proxy,
     [switch]$AcceptDefaults,
     [switch]$FromOfficial,
+    [switch]$Force,
     [string]$CaptureLogFile
 )
 
@@ -77,8 +78,8 @@ function Add-DirectoryToUserPath {
 }
 
 try {
-    if (Ensure-ToolOnPath -CommandName "jq") {
-        $lines += "jq is already available on PATH."
+    if ((Ensure-ToolOnPath -CommandName "jq") -and -not $Force) {
+        $lines += "jq is already available on PATH. Use -Force to reinstall."
         $lines += "No installation performed."
         Write-OutputLines -Content $lines -LogFile $CaptureLogFile
         exit 0

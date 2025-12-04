@@ -25,6 +25,7 @@ param(
     [string]$Proxy,
     [switch]$AcceptDefaults,
     [switch]$FromOfficial,
+    [switch]$Force,
     [string]$CaptureLogFile
 )
 
@@ -57,8 +58,8 @@ function Ensure-ToolOnPath {
 }
 
 try {
-    if (Ensure-ToolOnPath -CommandName "pwsh") {
-        $lines += "PowerShell 7 (pwsh) is already available on PATH."
+    if ((Ensure-ToolOnPath -CommandName "pwsh") -and -not $Force) {
+        $lines += "PowerShell 7 (pwsh) is already available on PATH. Use -Force to reinstall."
         $lines += "No installation performed."
         Write-OutputLines -Content $lines -LogFile $CaptureLogFile
         exit 0

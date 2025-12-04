@@ -26,6 +26,7 @@ param(
     [string]$Proxy,
     [switch]$AcceptDefaults,
     [switch]$FromOfficial,
+    [switch]$Force,
     [string]$CaptureLogFile
 )
 
@@ -70,6 +71,22 @@ try {
         $lines += "Reinstall Node.js with npm support and try again."
         Write-OutputLines -Content $lines -LogFile $CaptureLogFile
         exit 1
+    }
+
+    # Check if package is already installed globally
+    $packageName = "@openai/codex"
+    $isInstalled = $false
+    try {
+        $npmList = npm list -g $packageName --depth=0 2>$null
+        if ($npmList -match $packageName) {
+            $isInstalled = $true
+        }
+    } catch {}
+
+    if ($isInstalled -and -not $Force) {
+        $lines += "Package $packageName is already installed globally. Use -Force to reinstall."
+        Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+        exit 0
     }
 
     if ($Proxy) {
