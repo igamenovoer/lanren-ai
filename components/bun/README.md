@@ -47,3 +47,13 @@ Bun’s own installer ensures both `bun` and `bunx` are set up correctly and tha
   - Use `winget` as appropriate for package management, but correct any PATH / `bunx` issues via the official installer when necessary.
   - Respect `--proxy / -Proxy` for downloads.
   - Accept `--from-official` to force use of official URLs even if a local accelerator/proxy is configured.
+
+## Configuration
+
+- To configure the global package registry (mirror), run the configuration script:
+  ```powershell
+  .\config-comp.ps1 -Mirror cn
+  # or
+  .\config-comp.ps1 -Mirror official
+  ```
+- This updates `~/.bunfig.toml` to use `registry.npmmirror.com` (for `cn`) or `registry.npmjs.org` (for `official`).

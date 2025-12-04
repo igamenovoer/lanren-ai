@@ -28,6 +28,16 @@ If you need to download installers or binaries manually, use a known mirror:
   npm config get registry
   ```
 
+## Configuration
+
+- To configure the global package registry (mirror), run the configuration script:
+  ```powershell
+  .\config-comp.ps1 -Mirror cn
+  # or
+  .\config-comp.ps1 -Mirror official
+  ```
+- This runs `npm config set registry ...` to use `registry.npmmirror.com` (for `cn`) or `registry.npmjs.org` (for `official`).
+
 Our `install-comp` script will:
 
 - Prefer `winget install` as above.

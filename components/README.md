@@ -37,10 +37,10 @@ Where possible, component subdirectories should expose the following standard to
     - When set, the script uses official URLs/repositories only; if the official source is already the default, this flag is effectively a no-op.
   - The PowerShell script should set proxy environment or command options as needed (e.g., `HTTP_PROXY`, `HTTPS_PROXY`, `winget`/`Invoke-WebRequest` options), honor `-FromOfficial`/`-Proxy`/`-AcceptDefaults`, and optionally support `-CaptureLogFile`.
 
-### `configure-comp.ps1`
+### `config-comp.ps1`
 
 - Purpose: Apply post-install configuration for the component.
-- Files: `configure-comp.ps1`.
+- Files: `config-comp.ps1`.
 - Arguments: Component-specific (e.g., API keys, paths, profile names). Each `.ps1` must document its parameters via comment-based help, support an optional `-CaptureLogFile`, and expose a "say yes" switch for accepting defaults.
 
 ## Component-Specific Scripts

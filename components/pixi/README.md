@@ -33,3 +33,22 @@ Our `install-comp` script will:
   - https://pixi.sh
   - Installation guide: https://prefix-dev.github.io/pixi/dev/installation/
 
+## Configuration
+
+- To configure global mirrors (conda-forge and PyPI), run the configuration script:
+  ```powershell
+  # Set both to China mirrors (Tsinghua)
+  .\config-comp.ps1 -Mirror cn
+
+  # Set specific mirrors
+  .\config-comp.ps1 -MirrorConda tuna -MirrorPypi aliyun
+
+  # Reset to official
+  .\config-comp.ps1 -Mirror official
+  ```
+- Parameters:
+  - `-Mirror`: Sets both Conda and PyPI (e.g., `cn` sets both to `tuna`).
+  - `-MirrorConda`: Overrides Conda mirror (`cn`, `official`, `tuna`).
+  - `-MirrorPypi`: Overrides PyPI mirror (`cn`, `official`, `aliyun`, `tuna`).
+- Configuration is saved to `%APPDATA%\pixi\config.toml` via `pixi config`.
+

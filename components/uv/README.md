@@ -33,3 +33,18 @@ Our `install-comp` script will:
 - Official docs:
   - https://docs.astral.sh/uv/getting-started/installation/
 
+## Configuration
+
+- To configure the global package index (mirror), run the configuration script:
+  ```powershell
+  .\config-comp.ps1 -Mirror cn
+  # or
+  .\config-comp.ps1 -Mirror aliyun
+  # or
+  .\config-comp.ps1 -Mirror tuna
+  # or
+  .\config-comp.ps1 -Mirror official
+  ```
+- This updates `%APPDATA%\uv\uv.toml` to set `index-url`.
+- `cn` defaults to `aliyun`.
+
