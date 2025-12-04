@@ -36,7 +36,13 @@ $script:LanrenComponentName = Split-Path -Leaf $PSScriptRoot
 if (-not $script:LanrenComponentName) { $script:LanrenComponentName = "tavily-mcp" }
 
 function Get-LanrenAiRoot {
-    [System.IO.Path]::Combine([System.IO.Path]::GetTempPath(), "lanren-ai")
+    $envRoot = $env:LRAI_MASTER_OUTPUT_DIR
+    if (-not [string]::IsNullOrWhiteSpace($envRoot)) {
+        return $envRoot
+    }
+
+    $cwd = (Get-Location).Path
+    return (Join-Path $cwd "lanren-cache")
 }
 
 function Get-LanrenComponentLogFile {

@@ -34,12 +34,14 @@ Where possible, component subdirectories should expose the following standard to
   - Does not take an `--input-dir` / `-InputDir` parameter.
   - If the component is available via `winget`, installers should **prefer `winget` as the primary installation method**, using direct downloads or language-specific tools (`npm install`, `uv tool install`, etc.) only as a fallback when `winget` is unavailable or unsuitable.
   - Logging:
-    - Every `install-comp.ps1` and `config-comp.ps1` writes its log output to a component-scoped file under the system temp directory:
-      - Logs: `<system-temp>\lanren-ai\logs\<component-name>\<timestamp>.log`
+    - Every `install-comp.ps1` and `config-comp.ps1` writes its log output to a component-scoped file under a shared output directory:
+      - Default root: `<pwd>\lanren-cache\`
+      - Logs: `<root>\logs\<component-name>\<timestamp>.log`
+    - When the environment variable `LRAI_MASTER_OUTPUT_DIR` is set, its value is used as `<root>` instead of `<pwd>\lanren-cache`.
     - When `-CaptureLogFile` is provided, scripts continue to mirror their log output to the caller-specified path in addition to the standard log file.
   - Manual downloads:
-    - If manual downloads are required (e.g., MSI/ZIP/installer, standalone scripts), the script saves them under a component-scoped packages directory:
-      - Packages: `<system-temp>\lanren-ai\packages\<component-name>\<filename>`
+    - If manual downloads are required (e.g., MSI/ZIP/installer, standalone scripts), the script saves them under a component-scoped packages directory under the same root:
+      - Packages: `<root>\packages\<component-name>\<filename>`
     - Package managers such as `winget`, `npm`, `uv`, and `pixi` are allowed to manage their own download locations; the above packages directory is only for explicit direct downloads initiated by the scripts.
   - If the component can be installed directly via a package manager other than `winget` (e.g., `npm`, `uv`) and no `winget` package exists or is appropriate, it may install directly without any explicit download step, again honoring the proxy setting.
   - For components with widely used, stable China-based mirrors (e.g., Tsinghua/USTC mirrors, domestic artifact proxies), the script should prefer the China-based source by default and fall back to the official upstream URL if the mirror is unavailable. When no reliable mirror exists, the official source is used directly.
