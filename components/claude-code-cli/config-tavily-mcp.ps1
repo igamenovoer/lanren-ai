@@ -16,6 +16,7 @@ The MCP server is registered using:
 Where `<jsonConfig>` is a JSON object similar to:
 
   {
+    "type": "stdio",
     "command": "tavily-mcp",
     "args": [],
     "env": { "TAVILY_API_KEY": "..." }
@@ -171,7 +172,48 @@ try {
     Write-Host ""
     Write-Info "Configuring Tavily MCP server in Claude Code (scope=$scope, name=$mcpName)..."
 
+    # On Windows PowerShell 5.x, avoid claude mcp add-json because JSON
+    # arguments are hard to pass correctly. Instead, persist the API key
+    # as a user environment variable and use `claude mcp add`.
+    if ($PSVersionTable.PSVersion.Major -lt 7) {
+        Write-Info "Detected Windows PowerShell $($PSVersionTable.PSVersion); using user env var + 'claude mcp add'."
+
+        try {
+            [Environment]::SetEnvironmentVariable("TAVILY_API_KEY", $ApiKey, "User")
+            $env:TAVILY_API_KEY = $ApiKey
+            Write-Info "Set user environment variable TAVILY_API_KEY."
+        } catch {
+            Write-Err "Failed to set user environment variable TAVILY_API_KEY: $($_.Exception.Message)"
+            Exit-WithWait 1
+        }
+
+        Write-Info "Removing existing '$mcpName' server in scope 'local' (if any)..."
+        try {
+            claude mcp remove $mcpName 2>$null
+        } catch {
+            # ignore errors; server might not exist
+        }
+
+        $envArg = "TAVILY_API_KEY=$ApiKey"
+        Write-Info "Adding '$mcpName' server in local scope via 'claude mcp add'..."
+        & claude mcp add -t stdio -e $envArg $mcpName "tavily-mcp"
+        $addExit = $LASTEXITCODE
+        if ($addExit -ne 0) {
+            Write-Err "Failed to add Tavily MCP server (exit code $addExit)."
+            Exit-WithWait 1
+        }
+
+        Write-Host ""
+        Write-Host "Tavily MCP server has been configured for Claude Code (scope=user, name=$mcpName)." -ForegroundColor Green
+        Write-Host "You can verify it with: claude mcp list"
+        Write-Host ""
+
+        Exit-WithWait 0
+    }
+
+    # PowerShell 7+ path: safe to use JSON-based configuration
     $configObject = @{
+        type    = "stdio"
         command = "tavily-mcp"
         args    = @()
         env     = @{ TAVILY_API_KEY = $ApiKey }
@@ -186,7 +228,7 @@ try {
         # ignore errors; server might not exist
     }
 
-    Write-Info "Adding '$mcpName' server in scope '$scope'..."
+    Write-Info "Adding '$mcpName' server in scope '$scope' via 'claude mcp add-json'..."
     & claude mcp add-json -s $scope $mcpName $jsonConfig
     $addExit = $LASTEXITCODE
     if ($addExit -ne 0) {
@@ -205,4 +247,3 @@ catch {
     Write-Err "config-tavily-mcp.ps1 failed: $($_.Exception.Message)"
     Exit-WithWait 1
 }
-
