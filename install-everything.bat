@@ -85,6 +85,11 @@ call :run_step "%ROOT%components\git\install-comp.bat"           "Install Git (v
 call :run_step "%ROOT%components\uv\install-comp.bat"            "Install uv (Python toolchain)"
 call :run_step "%ROOT%components\pixi\install-comp.bat"          "Install pixi (Conda environment tool)"
 call :run_step "%ROOT%components\nodejs\install-comp.bat"        "Install Node.js and npm"
+if defined STEP_CODE if not "%STEP_CODE%"=="0" (
+    echo [FATAL] Node.js installation failed with code %STEP_CODE%.
+    echo         Skipping remaining steps because many components depend on Node.js.
+    goto :after_main
+)
 call :run_step "%ROOT%components\bun\install-comp.bat"           "Install Bun (JS runtime)"
 call :run_step "%ROOT%components\aria2\install-comp.bat"         "Install aria2 (download helper, optional)"
 
@@ -95,6 +100,8 @@ call :run_step "%ROOT%components\claude-code-cli\config-skip-login.bat" "Configu
 call :run_step "%ROOT%components\codex-cli\config-skip-login.bat"       "Configure Codex CLI to skip login"
 call :run_step "%ROOT%components\context7-mcp\install-comp.bat"    "Install Context7 MCP"
 call :run_step "%ROOT%components\markitdown\install-comp.bat"      "Install MarkItDown"
+
+:after_main
 
 echo.
 echo ============================================================
