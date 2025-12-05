@@ -33,6 +33,8 @@ echo.
 echo Press any key to start, or Ctrl+C to cancel...
 pause >nul
 
+goto :main
+
 :: Helper: run a single step script if it exists
 :run_step
 rem %1 = script path, %2 = short description
@@ -63,6 +65,8 @@ if not "%STEP_CODE%"=="0" (
 )
 
 goto :eof
+
+:main
 
 :: 1. Set execution policy (allow running .ps1 for current user)
 call :run_step "%ROOT%enable-ps1-permission.bat" "Set PowerShell execution policy (CurrentUser)"
