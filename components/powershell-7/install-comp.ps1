@@ -194,8 +194,12 @@ try {
             & winget @wingetArgs
             $exitCode = $LASTEXITCODE
 
-            if ($exitCode -eq 0 -and (Test-ToolOnPath -CommandName "pwsh")) {
-                $lines += "PowerShell 7 (LTS) installed successfully via winget."
+            if ($exitCode -eq 0) {
+                if (Test-ToolOnPath -CommandName "pwsh") {
+                    $lines += "PowerShell 7 (LTS) is available on PATH after winget completed."
+                } else {
+                    $lines += "winget completed; if an installer window opened, wait for it to finish installing PowerShell 7 (LTS)."
+                }
                 $installSucceeded = $true
             } else {
                 $lines += "winget install for PowerShell 7 (LTS) did not complete successfully (exit code $exitCode)."

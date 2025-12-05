@@ -208,8 +208,12 @@ try {
         & winget @wingetArgs
         $exitCode = $LASTEXITCODE
 
-        if ($exitCode -eq 0 -and (Test-ToolOnPath -CommandName "jq")) {
-            $lines += "jq installed successfully via winget."
+        if ($exitCode -eq 0) {
+            if (Test-ToolOnPath -CommandName "jq") {
+                $lines += "jq is available on PATH after winget completed."
+            } else {
+                $lines += "winget completed; if an installer window opened, wait for it to finish installing jq."
+            }
             $installed = $true
         } else {
             $lines += "winget install for jq did not complete successfully (exit code $exitCode)."

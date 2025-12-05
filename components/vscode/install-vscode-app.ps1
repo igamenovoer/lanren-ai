@@ -173,7 +173,7 @@ try {
         $lines += "Using proxy for winget/network: $Proxy"
     }
 
-    $wingetCmd = Get-Command winget -ErrorAction SilentlyContinue
+        $wingetCmd = Get-Command winget -ErrorAction SilentlyContinue
     if ($wingetCmd) {
         $wingetArgs = @(
             "install",
@@ -184,7 +184,7 @@ try {
             $wingetArgs += @("--accept-source-agreements","--accept-package-agreements")
         }
 
-        $override = '/VERYSILENT /SP- /MERGETASKS="!runcode,addtopath"'
+        $override = '/VERYSILENT /SP- /MERGETASKS="!runcode,addcontextmenufiles,addcontextmenufolders,addtopath"'
         $wingetArgs += @("--override",$override)
 
         $lines += "Running: winget $($wingetArgs -join ' ')"
@@ -193,7 +193,7 @@ try {
 
         if ($exitCode -eq 0) {
             $lines += "VS Code installed successfully via winget."
-            $lines += "Installer override requested PATH integration and disabled auto-launch."
+            $lines += "Installer override requested context menus, PATH integration, and disabled auto-launch."
             $installSucceeded = $true
         } else {
             $lines += "winget install for VS Code did not complete successfully (exit code $exitCode)."
@@ -210,7 +210,7 @@ try {
     $lines += "- Official download page: https://code.visualstudio.com/Download"
     $lines += ""
     $lines += "Download the User Setup installer (VSCodeUserSetup-*.exe) and run it with, for example:"
-    $lines += '  .\VSCodeUserSetup-*.exe /VERYSILENT /NORESTART /MERGETASKS="!runcode,addtopath"'
+    $lines += '  .\VSCodeUserSetup-*.exe /VERYSILENT /NORESTART /MERGETASKS="!runcode,addcontextmenufiles,addcontextmenufolders,addtopath"'
 } catch {
     $lines += "Error installing Visual Studio Code: $($_.Exception.Message)"
     Write-OutputLine -Content $lines -LogFile $CaptureLogFile

@@ -208,8 +208,12 @@ try {
         & winget @wingetArgs
         $exitCode = $LASTEXITCODE
 
-        if ($exitCode -eq 0 -and (Test-ToolOnPath -CommandName "yq")) {
-            $lines += "yq installed successfully via winget."
+        if ($exitCode -eq 0) {
+            if (Test-ToolOnPath -CommandName "yq") {
+                $lines += "yq is available on PATH after winget completed."
+            } else {
+                $lines += "winget completed; if an installer window opened, wait for it to finish installing yq."
+            }
             $installed = $true
         } else {
             $lines += "winget install for yq did not complete successfully (exit code $exitCode)."

@@ -187,8 +187,12 @@ try {
             & winget @wingetArgs
             $exitCode = $LASTEXITCODE
 
-            if ($exitCode -eq 0 -and (Test-ToolOnPath -CommandName "aria2c")) {
-                $lines += "aria2 installed successfully via winget."
+            if ($exitCode -eq 0) {
+                if (Test-ToolOnPath -CommandName "aria2c") {
+                    $lines += "aria2 is available on PATH after winget completed."
+                } else {
+                    $lines += "winget completed; if an installer window opened, wait for it to finish installing aria2."
+                }
                 $installSucceeded = $true
             } else {
                 $lines += "winget install did not complete successfully (exit code $exitCode)."
