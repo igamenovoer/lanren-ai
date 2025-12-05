@@ -54,3 +54,17 @@ The script will:
   - `[model_providers.<alias-id>]`:
     - Uses `base_url` and `env_key = "OPENAI_API_KEY"`.
     - Sets `requires_openai_auth = false`, so Codex will not show the login screen when launched via that alias.
+
+## MCP helpers (Context7 / Tavily)
+
+> Note: For Codex CLI, this repository uses `bunx`（而不是更常见的 `npx`）来启动 MCP 服务器，主要原因是当前「`npx` + Codex CLI」组合在部分环境下并不稳定；推荐先安装 Bun，并按下面的脚本说明使用 `bunx`。
+
+In addition to `config-custom-api-key`, this directory also contains helpers for configuring MCP servers commonly used with Codex:
+
+- `config-context7-mcp.bat` / `.ps1`  
+  - Installs the Context7 MCP server via Bun (`bun add -g @upstash/context7-mcp`) and appends an MCP entry such as `[mcp_servers.context7]` to `config.toml` that starts the server with `bunx @upstash/context7-mcp@latest`.  
+  - Context7 连接到 Context7 的文档数据库，为 Codex 提供「最新、指定版本」的库 / 框架文档检索能力，减少因为示例过旧或 API 变更导致的报错。  
+- `config-tavily-mcp.bat` / `.ps1`  
+  - Installs the Tavily MCP server via Bun (`bun add -g tavily-mcp`)、提示输入 Tavily API Key，并在 `config.toml` 中写入 `[mcp_servers.tavily]` 配置，使用 `bunx tavily-mcp@latest` 启动 MCP 服务器，为 Codex 提供联网搜索 / 新闻检索等能力。  
+
+通常流程是：先通过 `install-comp.bat` 安装 Codex CLI，再视需要运行 `config-custom-api-key.bat`、`config-context7-mcp.bat`、`config-tavily-mcp.bat` 做进一步配置。  
