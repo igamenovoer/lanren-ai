@@ -11,7 +11,7 @@ This component installs Visual Studio Code.
   winget install -e --id Microsoft.VisualStudioCode
   ```
 
-This installs VS Code via the official Microsoft installer. However, depending on defaults and how the underlying setup is invoked, the Explorer context menu entries (“Open with Code” for files and folders) may not be enabled by default.
+This installs VS Code via the official Microsoft installer.
 
 ## China-friendly installation (CDN)
 
@@ -21,15 +21,14 @@ This installs VS Code via the official Microsoft installer. However, depending o
   1. Download the VS Code installer from the China CDN (or from the official site, which may redirect to a regional CDN).
   2. Run the installer silently:
      ```powershell
-     .\VSCodeUserSetup-*.exe /VERYSILENT /NORESTART /MERGETASKS="addcontextmenufiles,addcontextmenufolders,addtopath"
+     .\VSCodeUserSetup-*.exe /VERYSILENT /NORESTART /MERGETASKS="!runcode,addtopath"
      ```
 - Our `install-comp` script will:
-  - Prefer `winget install -e --id Microsoft.VisualStudioCode` with an appropriate `/override` to ensure context menu integration, for example:
+  - Prefer `winget install -e --id Microsoft.VisualStudioCode` with an appropriate `/override` to ensure non-interactive install and PATH integration, for example:
     ```powershell
-    winget install --force Microsoft.VisualStudioCode --override '/VERYSILENT /SP- /MERGETASKS="addcontextmenufiles,addcontextmenufolders,associatewithfiles,addtopath"'
+    winget install --force Microsoft.VisualStudioCode --override '/VERYSILENT /SP- /MERGETASKS="!runcode,addtopath"'
     ```
-  - If `winget` does not expose the required options in a given environment, fall back to downloading the installer and running it with `/MERGETASKS="addcontextmenufiles,addcontextmenufolders,addtopath"` so that:
-    - “Open with Code” appears in the file and folder context menus.
+  - If `winget` does not expose the required options in a given environment, fall back to downloading the installer and running it with `/MERGETASKS="!runcode,addtopath"` so that:
     - VS Code is added to `PATH`.
   - When a direct download is required, use the China CDN first when appropriate, then fall back to `https://code.visualstudio.com/Download`.
   - Respect `--proxy / -Proxy` and `--from-official` (forcing direct use of `code.visualstudio.com`).
