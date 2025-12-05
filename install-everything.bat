@@ -58,8 +58,7 @@ if not "%STEP_CODE%"=="0" (
     echo [WARN] Step script exited with error code: %STEP_CODE%
     echo        If this is due to a transient network issue or mirror failure,
     echo        you can retry this component later from its components\... folder.
-    echo        Press any key to continue with the next step, or Ctrl+C to abort.
-    pause >nul
+    set "HAS_FAILURE=1"
 ) else (
     echo [OK] Step completed successfully.
 )
@@ -75,7 +74,7 @@ call :run_step "%ROOT%enable-ps1-permission.bat" "Set PowerShell execution polic
 call :run_step "%ROOT%components\winget\install-comp.bat"        "Install winget (Windows Package Manager)"
 call :run_step "%ROOT%components\powershell-7\install-comp.bat"  "Install PowerShell 7"
 call :run_step "%ROOT%components\vscode\install-vscode-app.bat"  "Install VS Code editor"
-call :run_step "%ROOT%components\vscode\install-extensions.bat"  "Install VS Code recommended extensions"
+@REM call :run_step "%ROOT%components\vscode\install-extensions.bat"  "Install VS Code recommended extensions"
 
 :: 3. Install common CLI tools
 call :run_step "%ROOT%components\jq\install-comp.bat"            "Install jq (JSON tool)"
@@ -100,8 +99,13 @@ echo ============================================================
 echo   All bulk install steps have finished.
 echo ============================================================
 echo.
-echo - If any step failed, please open the corresponding
-echo   components\...\ folder and re-run its install-comp.bat manually.
+if defined HAS_FAILURE (
+    echo - One or more steps reported errors.
+    echo   Please scroll up to view details and open the corresponding
+    echo   components\...\ folder to re-run its install-comp.bat manually.
+) else (
+    echo - All steps reported successful completion.
+)
 echo - Next, you can follow the README to optionally run
 echo   claude-code-cli / codex-cli config-*.bat scripts for extra setup.
 echo.
@@ -109,4 +113,8 @@ echo Press any key to exit this installer...
 pause >nul
 
 endlocal
-exit /b 0
+if defined HAS_FAILURE (
+    exit /b 1
+) else (
+    exit /b 0
+)

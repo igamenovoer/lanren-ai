@@ -39,6 +39,24 @@ This directory contains small, task-focused helpers for working with Hyper-V VMs
   - Copy from PowerShell:  
     `.\scripts\dev\copy-file-to-vm.ps1 -VMName win10-test -SourcePath .\README.md -DestinationPath 'C:\Temp'`
 
+### `save-vm-snapshot.*`
+
+- Purpose: Create a Hyper-V checkpoint (snapshot) for a VM and optionally record metadata to a host file.
+- Usage:
+  - Batch: `scripts\dev\save-vm-snapshot.bat <VM-NAME> [CKPT-METADATA-FILE] [--ckpt-name <NAME>] [--ckpt-type <Standard|Production|ProductionOnly>]`
+  - PowerShell: `.\scripts\dev\save-vm-snapshot.ps1 -VMName <VM-NAME> [-MetadataFile <PATH>] [-CheckpointName <NAME>] [-CheckpointType <Standard|Production|ProductionOnly>]`
+- Notes: Useful for creating a pre-change checkpoint you can restore to later.
+
+### `restore-vm-latest-checkpoint.*`
+
+- Purpose: Stop a Hyper-V VM if needed, restore it to its most recent checkpoint, and optionally start it again.
+- Usage:
+  - Batch: `scripts\dev\restore-vm-latest-checkpoint.bat <VM-NAME> [--no-start]`
+  - PowerShell: `.\scripts\dev\restore-vm-latest-checkpoint.ps1 -VMName <VM-NAME> [-NoStart]`
+- Example:
+  - `scripts\dev\restore-vm-latest-checkpoint.bat win10-test`
+- Notes: By default the VM is started after restore; use `--no-start` / `-NoStart` to leave it powered off after reverting.
+
 ## Logging and Elevation Pattern
 
 - The `.bat` wrappers:
@@ -48,4 +66,3 @@ This directory contains small, task-focused helpers for working with Hyper-V VMs
 - The `.ps1` scripts:
   - Accept `-CaptureLogFile` (optional) and write output with `-Encoding Default` so logs can be printed cleanly in `cmd.exe`.
   - When run directly without `-CaptureLogFile`, they just write to the console.
-
