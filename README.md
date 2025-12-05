@@ -81,7 +81,7 @@
    - 安装 / 检查：winget、PowerShell 7、VS Code；  
    - 安装常用命令行工具：jq、yq、Git；  
    - 安装开发基础工具：uv、pixi、Node.js、Bun、aria2；  
-   - 安装 AI 相关组件：Claude Code CLI、Codex CLI、Context7 MCP、MarkItDown；  
+   - 安装 AI 相关组件：Claude Code CLI、Codex CLI、MarkItDown；  
    - 为后续的「跳过登录 / 使用自定义 Endpoint」预备好必要的脚本（`config-custom-api-key.bat` / `.ps1` 等），但 **不会自动修改你的 API Key 或 Codex/Claude 登录状态**；  
    - **不会自动运行 `config-*.bat` 配置脚本**（例如 Tavily MCP 配置、自定义 API Key / 代理、跳过登录等），这些属于「可选配置」，需要你在安装完后进入对应 `components\...\` 目录按需双击执行。  
 4. 如果某个子步骤执行失败，窗口中会出现类似：  
@@ -216,13 +216,13 @@ PowerShell 7 会作为后续脚本的推荐运行环境，更稳定、功能也�
 
 #### 6.3 为 Claude 配置 Context7 MCP（可选）
 
-Context7 MCP 可以为 Claude 提供更强的代码理解、项目上下文检索等能力。前提是你已经按第 8 步安装了 Context7 MCP 服务器（`components\context7-mcp\install-comp.bat`）。
+Context7 MCP 可以为 Claude 提供更强的代码理解、项目上下文检索等能力。
 
 在 `components\claude-code-cli` 目录下双击：
 
 - `config-context7-mcp.bat`  
-  - 作用：在 Claude Code 的配置中注册 Context7 MCP 服务器（通常基于 `@upstash/context7-mcp` 或类似实现）。  
-  - 脚本会调用已安装的 Context7 MCP，并写入合适的 MCP 配置，让 `claude` 可以直接调用 Context7 提供的工具。  
+  - 作用：为当前用户安装/更新 Context7 MCP 服务器（基于 `@upstash/context7-mcp` 等实现），并在 Claude Code 的配置中注册名为 `context7` 的 MCP 服务器。  
+  - 脚本会调用 `npm` / `claude mcp add` 等命令，写入合适的 MCP 配置，让 `claude` 可以直接调用 Context7 提供的工具，无需单独运行其他安装脚本。  
 
 如果你暂时不需要更高级的上下文管理，可以先跳过这一步。
 
@@ -271,11 +271,11 @@ Tavily MCP 可以让 Claude 具备联网搜索等能力。使用前需要先在 
 
 #### 7.3 为 Codex 配置 Context7 MCP（可选）
 
-当你已经按第 8 步安装好 Context7 MCP（`components\context7-mcp\install-comp.bat`）后，可以在 Codex 中启用它：
+在 Codex 中启用 Context7 MCP：
 
 - 双击：`components\codex-cli\config-context7-mcp.bat`  
-  - 脚本会在 Codex 的 `config.toml` 中写入 `[mcp_servers.context7]`（或类似）配置，指向已安装的 Context7 MCP 服务器。  
-  - 这样，在 `codex` 中就可以直接使用 Context7 作为 MCP 工具源，用于项目上下文检索等任务。  
+  - 脚本会使用 Bun 安装/更新 `@upstash/context7-mcp`，并在 Codex 的 `config.toml` 中写入 `[mcp_servers.context7]`（或类似）配置，使用 `bunx @upstash/context7-mcp@latest` 启动 MCP 服务器。  
+  - 这样，在 `codex` 中就可以直接使用 Context7 作为 MCP 工具源，用于项目上下文检索等任务，无需单独安装 `components\context7-mcp` 组件。  
 
 如果你主要使用 Tavily 或不需要 Context7，暂时可以跳过这一步。
 

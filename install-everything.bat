@@ -8,7 +8,7 @@ setlocal
 ::   2. Install winget, PowerShell 7, VS Code
 ::   3. Install jq / yq / git
 ::   4. Install uv / pixi / nodejs / bun / aria2
-::   5. Install Claude Code CLI, Codex CLI, Context7 MCP, MarkItDown
+::   5. Install Claude Code CLI, Codex CLI, MarkItDown
 :: Notes:
 ::   - Each child installer is designed to be idempotent; re-running is usually safe.
 ::   - Some steps require network access; make sure you can reach the internet or a mirror.
@@ -25,7 +25,7 @@ echo This script will install, in the same order as the README:
 echo   - winget / PowerShell 7 / VS Code
 echo   - jq / yq / git
 echo   - uv / pixi / nodejs / bun / aria2
-echo   - Claude Code CLI / Codex CLI / Context7 MCP / MarkItDown
+echo   - Claude Code CLI / Codex CLI / MarkItDown
 echo.
 echo It is recommended to close heavy disk-usage programs
 echo (large downloads, games, etc.) before running.
@@ -98,7 +98,6 @@ call :run_step "%ROOT%components\claude-code-cli\install-comp.bat"   "Install Cl
 call :run_step "%ROOT%components\codex-cli\install-comp.bat"         "Install OpenAI Codex CLI"
 call :run_step "%ROOT%components\claude-code-cli\config-skip-login.bat" "Configure Claude Code CLI to skip login"
 call :run_step "%ROOT%components\codex-cli\config-skip-login.bat"       "Configure Codex CLI to skip login"
-call :run_step "%ROOT%components\context7-mcp\install-comp.bat"    "Install Context7 MCP"
 call :run_step "%ROOT%components\markitdown\install-comp.bat"      "Install MarkItDown"
 
 :after_main

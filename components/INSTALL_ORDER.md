@@ -29,6 +29,5 @@ It is important to follow the correct installation order to ensure all dependenc
 - codex-cli
 - 
 ## Plugin Stage
-- context7-mcp
 - tavily-mcp
 - markitdown
