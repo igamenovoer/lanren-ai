@@ -9,8 +9,9 @@ This script does two things for the current user:
   so you can launch Codex with a custom endpoint and API key via a short alias.
 - Updates the Codex configuration file (`config.toml` under CODEX_HOME, default `%USERPROFILE%\.codex`)
   so that:
-    - The built-in `openai` model provider reads its API key from `OPENAI_API_KEY`.
-    - `requires_openai_auth` is set to `false`, which disables the login screen.
+    - A new model provider is created based on your alias name.
+    - `model_provider` is set to that provider.
+    - The provider reads its API key from `OPENAI_API_KEY` and has `requires_openai_auth = false`, which disables the login screen.
 
 The PowerShell alias function looks like:
 
@@ -107,6 +108,15 @@ try {
         Exit-WithWait 1
     }
 
+    # Use the alias as the model provider ID in config.toml. We intentionally do
+    # not allow "openai" here because the built-in "openai" provider cannot be
+    # overridden in this Codex version due to how providers are merged.
+    $providerId = $AliasName
+    if ($providerId -ieq "openai") {
+        Write-Err "Alias name '$AliasName' cannot be used because 'openai' is a reserved built-in provider id. Please choose a different alias (for example: codex-openai-proxy)."
+        Exit-WithWait 1
+    }
+
     # Ensure Codex CLI is available
     $codexCmd = Get-Command codex -ErrorAction SilentlyContinue
     if (-not $codexCmd) {
@@ -181,6 +191,15 @@ try {
             $content = $content.TrimEnd() + [Environment]::NewLine
         }
 
+        # Also remove any existing function definition for this alias, even if it
+        # was not created by our markers, to avoid duplicate functions.
+        $escapedAlias = [regex]::Escape($AliasName)
+        $funcPattern = "(?msi)^\s*function\s+$escapedAlias\s*\{.*?^\}"
+        if ($content -match $funcPattern) {
+            $content = [regex]::Replace($content, $funcPattern, "", "Singleline")
+            $content = $content.TrimEnd() + [Environment]::NewLine
+        }
+
         Set-Content -Path $profilePath -Value $content -Encoding UTF8
         Add-Content -Path $profilePath -Value $functionLines -Encoding UTF8
     }
@@ -213,6 +232,18 @@ try {
     # Normalize line endings
     $configContent = $configContent -replace "`r`n", "`n"
 
+    # Ensure model_provider points to our custom provider id
+    if ($configContent -match '(?m)^\s*model_provider\s*=') {
+        $configContent = [regex]::Replace(
+            $configContent,
+            '(?m)^\s*model_provider\s*=.*$',
+            "model_provider = `"$providerId`""
+        )
+    } else {
+        # Prepend at the top so root keys stay before tables
+        $configContent = "model_provider = `"$providerId`"`n" + $configContent
+    }
+
     if ($configContent -notmatch '(?m)^\[model_providers\]') {
         if ($configContent.Length -gt 0 -and -not $configContent.EndsWith("`n")) {
             $configContent += "`n"
@@ -220,18 +251,19 @@ try {
         $configContent += "`n[model_providers]`n"
     }
 
-    # Remove any existing [model_providers.openai] block
-    $openAiBlockPattern = '(?ms)^\[model_providers\.openai\].*?(?=^\[|\z)'
-    if ($configContent -match $openAiBlockPattern) {
-        $configContent = [regex]::Replace($configContent, $openAiBlockPattern, "")
+    # Remove any existing block for this provider id
+    $escapedProviderId = [regex]::Escape($providerId)
+    $providerBlockPattern = "(?ms)^\[model_providers\.$escapedProviderId\].*?(?=^\[|\z)"
+    if ($configContent -match $providerBlockPattern) {
+        $configContent = [regex]::Replace($configContent, $providerBlockPattern, "")
         $configContent = $configContent.TrimEnd() + "`n"
     }
 
-    # Append new OpenAI provider block that uses env key and skips login
+    # Append new provider block that uses env key and skips login
     $providerLines = @()
     $providerLines += ""
-    $providerLines += "[model_providers.openai]"
-    $providerLines += 'name = "OpenAI (Custom Endpoint)"'
+    $providerLines += "[model_providers.$providerId]"
+    $providerLines += 'name = "Custom OpenAI-compatible endpoint"'
     $providerLines += "base_url = `"$BaseUrl`""
     $providerLines += 'env_key = "OPENAI_API_KEY"'
     $providerLines += 'env_key_instructions = "Set OPENAI_API_KEY in your environment or use the PowerShell alias function to launch Codex."'
@@ -259,7 +291,7 @@ try {
     Write-Host "  2) Then run:"
     Write-Host "       $AliasName"
     Write-Host ""
-    Write-Host "Codex will use OPENAI_API_KEY from the environment and will not show the login screen for the OpenAI provider."
+    Write-Host "Codex will use OPENAI_API_KEY from the environment and will not show the login screen for this custom provider."
 
     Exit-WithWait 0
 }
@@ -267,4 +299,3 @@ catch {
     Write-Err "config-custom-api-key.ps1 failed: $($_.Exception.Message)"
     Exit-WithWait 1
 }
-

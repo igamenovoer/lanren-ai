@@ -166,6 +166,15 @@ try {
             $content = $content.TrimEnd() + [Environment]::NewLine
         }
 
+        # Also remove any existing function definition for this alias, even if it
+        # was not created by our markers, to avoid duplicate functions.
+        $escapedAlias = [regex]::Escape($AliasName)
+        $funcPattern = "(?msi)^\s*function\s+$escapedAlias\s*\{.*?^\}"
+        if ($content -match $funcPattern) {
+            $content = [regex]::Replace($content, $funcPattern, "", "Singleline")
+            $content = $content.TrimEnd() + [Environment]::NewLine
+        }
+
         Set-Content -Path $profilePath -Value $content -Encoding UTF8
         Add-Content -Path $profilePath -Value $functionLines -Encoding UTF8
     }

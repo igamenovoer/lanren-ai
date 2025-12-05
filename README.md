@@ -82,8 +82,8 @@
    - 安装常用命令行工具：jq、yq、Git；  
    - 安装开发基础工具：uv、pixi、Node.js、Bun、aria2；  
    - 安装 AI 相关组件：Claude Code CLI、Codex CLI、Context7 MCP、MarkItDown；  
-   - 自动为 **Claude Code CLI** 和 **Codex CLI** 各运行一次 `config-skip-login.bat`，让它们默认跳过首启登录 / Onboarding 提示；  
-   - **不会自动运行其他 `config-*.bat` 脚本**（例如 Tavily MCP 配置、自定义 API Key / 代理等），这些属于「可选配置」，需要你在安装完后进入对应 `components\...\` 目录按需双击执行。  
+   - 为后续的「跳过登录 / 使用自定义 Endpoint」预备好必要的脚本（`config-custom-api-key.bat` / `.ps1` 等），但 **不会自动修改你的 API Key 或 Codex/Claude 登录状态**；  
+   - **不会自动运行 `config-*.bat` 配置脚本**（例如 Tavily MCP 配置、自定义 API Key / 代理、跳过登录等），这些属于「可选配置」，需要你在安装完后进入对应 `components\...\` 目录按需双击执行。  
 4. 如果某个子步骤执行失败，窗口中会出现类似：  
    - `[WARN] Step script exited with error code: ...`  
    - 同时会显示是哪一个 `components\...\install-comp.bat`（或 `config-*.bat`）出错。  
@@ -199,7 +199,8 @@ PowerShell 7 会作为后续脚本的推荐运行环境，更稳定、功能也�
 在 `components\claude-code-cli` 目录下，你可以按需双击这些配置脚本：
 
 - `config-skip-login.bat`  
-  - 作用：让 Claude Code CLI 跳过第一次启动时的登录 / Onboarding 流程，省去「扫码 / 网页登录」这一步。  
+  - 作用：在 `%USERPROFILE%\.claude.json` 中写入 / 更新 `hasCompletedOnboarding = true`，让 Claude Code CLI 在本机启动时直接进入可用状态，而不会再次弹出首启登录 / Onboarding 向导。  
+  - 一般来说，`install-comp.bat` 已经会做一次类似处理；如果你换机、重装 CLI 或希望「强制认定已经完成 Onboarding」，可以单独再跑一次这个脚本。  
 
 - `config-custom-api-key.bat`  
   - 作用：  
@@ -213,7 +214,19 @@ PowerShell 7 会作为后续脚本的推荐运行环境，更稳定、功能也�
      - Kimi 官方网站：<https://kimi.moonshot.cn/>（按官方文档申请并获取对应的 API Key）  
      具体怎么获取、使用这些平台的 Key，请以各自官网的说明为准。  
 
-#### 6.3 为 Claude 配置 Tavily MCP（可选）
+#### 6.3 为 Claude 配置 Context7 MCP（可选）
+
+Context7 MCP 可以为 Claude 提供更强的代码理解、项目上下文检索等能力。前提是你已经按第 8 步安装了 Context7 MCP 服务器（`components\context7-mcp\install-comp.bat`）。
+
+在 `components\claude-code-cli` 目录下双击：
+
+- `config-context7-mcp.bat`  
+  - 作用：在 Claude Code 的配置中注册 Context7 MCP 服务器（通常基于 `@upstash/context7-mcp` 或类似实现）。  
+  - 脚本会调用已安装的 Context7 MCP，并写入合适的 MCP 配置，让 `claude` 可以直接调用 Context7 提供的工具。  
+
+如果你暂时不需要更高级的上下文管理，可以先跳过这一步。
+
+#### 6.4 为 Claude 配置 Tavily MCP（可选）
 
 Tavily MCP 可以让 Claude 具备联网搜索等能力。使用前需要先在 Tavily 官网申请一个 API Key：
 
@@ -243,14 +256,11 @@ Tavily MCP 可以让 Claude 具备联网搜索等能力。使用前需要先在 
 
 在同一目录下，你可以按需双击这些脚本：
 
-- `config-skip-login.bat`  
-  - 作用：修改 `~/.codex/config.toml`，让 Codex 优先使用环境变量 `OPENAI_API_KEY`，并关闭启动时的交互式登录界面。  
-
 - `config-custom-api-key.bat`  
   - 作用：  
     - 在 PowerShell 中创建一个类似 `codex-openai-proxy` 的命令别名。  
     - 这个别名会自动设置 `OPENAI_BASE_URL` 和 `OPENAI_API_KEY`，然后启动 `codex`。  
-    - 同时更新 Codex 的 `config.toml`，为 `openai` 提供自定义的 base_url / env_key，并关闭 `requires_openai_auth`。  
+    - 同时更新 Codex 的 `config.toml`，创建一个以别名为基础的 `model_provider` 条目，配置自定义 `base_url` / `env_key`，并设置 `requires_openai_auth = false`，从而跳过 Codex 的登录界面。  
   - 如果你希望使用第三方 OpenAI 兼容代理（比如国内加速或自建代理），也可以参考：  
     - <https://github.com/mn-api/awesome-ai-proxy>  
     - 在该列表中挑选一个支持 OpenAI 协议的服务，按对方文档拿到接口地址和 API Key，再在本脚本的提示中填入即可。  
@@ -259,7 +269,17 @@ Tavily MCP 可以让 Claude 具备联网搜索等能力。使用前需要先在 
      - Kimi 官方网站：<https://kimi.moonshot.cn/>  
      这些平台通常会提供 OpenAI 协议或相似的兼容层，获取 API Key 和调用方式都以各自官方文档为准。  
 
-#### 7.3 为 Codex 配置 Tavily MCP（可选）
+#### 7.3 为 Codex 配置 Context7 MCP（可选）
+
+当你已经按第 8 步安装好 Context7 MCP（`components\context7-mcp\install-comp.bat`）后，可以在 Codex 中启用它：
+
+- 双击：`components\codex-cli\config-context7-mcp.bat`  
+  - 脚本会在 Codex 的 `config.toml` 中写入 `[mcp_servers.context7]`（或类似）配置，指向已安装的 Context7 MCP 服务器。  
+  - 这样，在 `codex` 中就可以直接使用 Context7 作为 MCP 工具源，用于项目上下文检索等任务。  
+
+如果你主要使用 Tavily 或不需要 Context7，暂时可以跳过这一步。
+
+#### 7.4 为 Codex 配置 Tavily MCP（可选）
 
 - 双击：`components\codex-cli\config-tavily-mcp.bat`  
   - 脚本会使用 Bun 安装 Tavily MCP，并在 Codex 的 `config.toml` 中写入 `[mcp_servers.tavily]` 配置，使用 `bunx tavily-mcp@latest` 启动 MCP 服务器。  
@@ -268,7 +288,8 @@ Tavily MCP 可以让 Claude 具备联网搜索等能力。使用前需要先在 
     2. 在 Tavily 控制台中创建并复制一个 API Key。  
     3. 运行 `config-tavily-mcp.bat` 时按提示粘贴该 Key。  
 
-如果你只想先简单体验 Codex CLI，本步可以只运行 `install-comp.bat` 和 `config-skip-login.bat`。
+如果你只想先简单体验 Codex CLI，最少可以只运行 `install-comp.bat`，直接用官方登录流程；  
+如果你想一开始就走「自定义 Endpoint + API Key + 跳过登录界面」的路线，可以在安装后再运行 `config-custom-api-key.bat`，根据提示配置一个专用别名（例如 `codex-openai-proxy`）。  
 
 ---
 
