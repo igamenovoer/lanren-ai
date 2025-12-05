@@ -131,7 +131,12 @@ try {
     $config.hasCompletedOnboarding = $true
 
     try {
-        $config | ConvertTo-Json -Depth 10 | Set-Content $configFile -Encoding UTF8 -ErrorAction Stop
+        $json = $config | ConvertTo-Json -Depth 10
+
+        # Write JSON as UTF-8 without BOM so Claude's JSON parser
+        # sees a clean leading "{" character and not a BOM/extra token.
+        $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+        [System.IO.File]::WriteAllText($configFile, $json, $utf8NoBom)
     } catch {
         Write-Err "Failed to write configuration: $($_.Exception.Message)"
         Exit-WithWait 1
