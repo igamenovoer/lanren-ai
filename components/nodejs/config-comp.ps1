@@ -11,20 +11,35 @@ The mirror to use.
 Options:
 - 'cn': Uses the npmmirror registry (https://registry.npmmirror.com).
 - 'official': Uses the official npm registry (https://registry.npmjs.org).
+
+.PARAMETER NoExit
+When specified, the script will wait for a key press before exiting.
+This is useful when running from a double-clicked .bat file.
 #>
 
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory=$false)]
+    [switch]$NoExit,
+    [Parameter(Mandatory=$false)
+]
     [ValidateSet("cn", "official")]
     [string]$Mirror
 )
+function Exit-WithWait {
+    param([int]$Code = 0)
+    if ($NoExit) {
+        Write-Host "Press any key to exit..."
+        $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    }
+    exit $Code
+}
+
+
 
 if (-not $Mirror) {
     Write-Output "Usage: .\config-comp.ps1 -Mirror <cn|official>"
     Write-Output "  cn       : Use npmmirror.com (China)"
     Write-Output "  official : Use npmjs.org"
-    exit 0
 }
 
 $ErrorActionPreference = "Stop"
@@ -36,7 +51,7 @@ Write-Output "Selected Mirror: $Mirror ($registryUrl)"
 
 if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
     Write-Error "npm command not found. Please install Node.js first."
-    exit 1
+    Exit-WithWait 1
 }
 
 try {
@@ -46,7 +61,7 @@ try {
     $setProcess = Start-Process -FilePath "npm" -ArgumentList $setArgs -NoNewWindow -Wait -PassThru
     if ($setProcess.ExitCode -ne 0) {
         Write-Error "npm config set registry exited with code $($setProcess.ExitCode)"
-        exit 1
+        Exit-WithWait 1
     }
 
     $tempFile = [System.IO.Path]::GetTempFileName()
@@ -55,7 +70,7 @@ try {
         $getProcess = Start-Process -FilePath "npm" -ArgumentList $getArgs -NoNewWindow -Wait -RedirectStandardOutput $tempFile -PassThru
         if ($getProcess.ExitCode -ne 0) {
             Write-Error "npm config get registry exited with code $($getProcess.ExitCode)"
-            exit 1
+            Exit-WithWait 1
         }
 
         $current = (Get-Content $tempFile -Raw).Trim()
@@ -73,5 +88,13 @@ try {
     }
 } catch {
     Write-Error "Failed to configure npm registry: $_"
-    exit 1
+    Exit-WithWait 1
 }
+
+
+if ($NoExit) {
+    Write-Host "Press any key to exit..."
+    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+}
+
+Exit-WithWait 0

@@ -19,14 +19,30 @@ available.
 .PARAMETER CaptureLogFile
 Optional log file path. When provided, all output is written here using the
 console default encoding so a .bat wrapper can print it.
+
+.PARAMETER NoExit
+When specified, the script will wait for a key press before exiting.
+This is useful when running from a double-clicked .bat file.
 #>
 
 [CmdletBinding()]
 param(
+    [switch]$NoExit,
     [switch]$AcceptDefaults,
     [switch]$Force,
     [string]$CaptureLogFile
 )
+function Exit-WithWait {
+    param([int]$Code = 0)
+    if ($NoExit) {
+        Write-Host "Press any key to exit..."
+        $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    }
+    exit $Code
+}
+
+
+
 
 $ErrorActionPreference = "Stop"
 $script:lastPrintedLine = 0
@@ -41,6 +57,8 @@ function Write-OutputLine {
         [string[]]$Content,
         [string]$LogFile
     )
+
+
 
     if ($LogFile) {
         $Content -join "`r`n" | Out-File -FilePath $LogFile -Encoding Default -Force
@@ -64,6 +82,8 @@ function Start-AppInstallerAndWait {
         [string]$FilePath,
         [switch]$AcceptDefaults
     )
+
+
 
     $null = $AcceptDefaults
 
@@ -100,7 +120,6 @@ try {
     if ($wingetCmd -and -not $Force) {
         $lines += "winget is already available on this system. Use -Force to reinstall."
         Write-OutputLine -Content $lines -LogFile $CaptureLogFile
-        exit 0
     }
 
     $lines += "winget is not available (or -Force used); attempting to install App Installer."
@@ -153,7 +172,7 @@ try {
             $lines += "Installation process finished, but winget command is not found."
             $lines += "If you cancelled the installation, you can run this script again."
             Write-OutputLines -Content $lines -LogFile $CaptureLogFile
-            exit 1
+            Exit-WithWait 1
         }
     }
 
@@ -163,14 +182,13 @@ try {
         $lines += "  $cacheDir"
         $lines += "Please manually download the App Installer package and place it there."
         Write-OutputLines -Content $lines -LogFile $CaptureLogFile
-        exit 1
+        Exit-WithWait 1
     }
 
     $wingetCmd = Get-Command winget -ErrorAction SilentlyContinue
     if ($wingetCmd) {
         $lines += "winget is now available."
         Write-OutputLines -Content $lines -LogFile $CaptureLogFile
-        exit 0
     }
 
     $lines += "Installation completed but winget is still not available on PATH."
@@ -178,8 +196,14 @@ try {
 } catch {
     $lines += "Error ensuring winget availability: $($_.Exception.Message)"
     Write-OutputLines -Content $lines -LogFile $CaptureLogFile
-    exit 1
+    Exit-WithWait 1
 }
 
 Write-OutputLines -Content $lines -LogFile $CaptureLogFile
-exit 1
+Exit-WithWait 1
+if ($NoExit) {
+    Write-Host "Press any key to exit..."
+    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+}
+
+Exit-WithWait 0

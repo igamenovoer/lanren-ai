@@ -19,16 +19,32 @@ when winget is unavailable.
 .PARAMETER CaptureLogFile
 Optional log file path. When provided, all output is written here using the
 console default encoding so a .bat wrapper can print it.
+
+.PARAMETER NoExit
+When specified, the script will wait for a key press before exiting.
+This is useful when running from a double-clicked .bat file.
 #>
 
 [CmdletBinding()]
 param(
+    [switch]$NoExit,
     [string]$Proxy,
     [switch]$AcceptDefaults,
     [switch]$FromOfficial,
     [switch]$Force,
     [string]$CaptureLogFile
 )
+function Exit-WithWait {
+    param([int]$Code = 0)
+    if ($NoExit) {
+        Write-Host "Press any key to exit..."
+        $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    }
+    exit $Code
+}
+
+
+
 
 $ErrorActionPreference = "Stop"
 
@@ -50,6 +66,8 @@ function Get-LanrenComponentLogFile {
         [string]$ComponentName
     )
 
+
+
     if (-not $ComponentName) {
         $ComponentName = $script:LanrenComponentName
     }
@@ -69,6 +87,8 @@ function Get-LanrenComponentPackagePath {
         [string]$FileName,
         [string]$ComponentName
     )
+
+
 
     if (-not $ComponentName) {
         $ComponentName = $script:LanrenComponentName
@@ -106,6 +126,8 @@ function Write-OutputLine {
         [string]$LogFile
     )
 
+
+
     $targets = @()
     if ($script:LanrenLogFiles) {
         $targets = $script:LanrenLogFiles
@@ -133,6 +155,8 @@ function Test-ToolOnPath {
     param(
         [string]$CommandName
     )
+
+
     $cmd = Get-Command $CommandName -ErrorAction SilentlyContinue
     return [bool]$cmd
 }
@@ -142,7 +166,6 @@ try {
         $lines += "aria2 is already available on PATH (aria2c command found). Use -Force to reinstall."
         $lines += "No installation performed."
         Write-OutputLine -Content $lines -LogFile $CaptureLogFile
-        exit 0
     }
 
     if ($Proxy) {
@@ -165,7 +188,6 @@ try {
         if ($exitCode -eq 0 -and (Test-ToolOnPath -CommandName "aria2c")) {
             $lines += "aria2 installed successfully via winget."
             Write-OutputLine -Content $lines -LogFile $CaptureLogFile
-            exit 0
         }
 
         $lines += "winget install did not complete successfully (exit code $exitCode)."
@@ -184,8 +206,14 @@ try {
 } catch {
     $lines += "Error installing aria2: $($_.Exception.Message)"
     Write-OutputLine -Content $lines -LogFile $CaptureLogFile
-    exit 1
+    Exit-WithWait 1
 }
 
 Write-OutputLine -Content $lines -LogFile $CaptureLogFile
-exit 1
+Exit-WithWait 1
+if ($NoExit) {
+    Write-Host "Press any key to exit..."
+    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+}
+
+Exit-WithWait 0

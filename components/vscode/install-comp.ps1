@@ -9,16 +9,32 @@ VS Code setup:
 - Configures the Explorer "Open in VS Code" context menu
   (`config-context-menu.ps1`)
 - Installs common VS Code extensions (`install-extensions.ps1`)
+
+.PARAMETER NoExit
+When specified, the script will wait for a key press before exiting.
+This is useful when running from a double-clicked .bat file.
 #>
 
 [CmdletBinding()]
 param(
+    [switch]$NoExit,
     [string]$Proxy,
     [switch]$AcceptDefaults,
     [switch]$FromOfficial,
     [switch]$Force,
     [string]$CaptureLogFile
 )
+function Exit-WithWait {
+    param([int]$Code = 0)
+    if ($NoExit) {
+        Write-Host "Press any key to exit..."
+        $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    }
+    exit $Code
+}
+
+
+
 
 $ErrorActionPreference = "Stop"
 
@@ -28,15 +44,15 @@ $extScript   = Join-Path -Path $PSScriptRoot -ChildPath "install-extensions.ps1"
 
 if (-not (Test-Path $appScript)) {
     Write-Error "install-vscode-app.ps1 not found in $PSScriptRoot."
-    exit 1
+    Exit-WithWait 1
 }
 if (-not (Test-Path $menuScript)) {
     Write-Error "config-context-menu.ps1 not found in $PSScriptRoot."
-    exit 1
+    Exit-WithWait 1
 }
 if (-not (Test-Path $extScript)) {
     Write-Error "install-extensions.ps1 not found in $PSScriptRoot."
-    exit 1
+    Exit-WithWait 1
 }
 
 & $appScript -Proxy $Proxy -AcceptDefaults:$AcceptDefaults -FromOfficial:$FromOfficial -Force:$Force -CaptureLogFile $CaptureLogFile
@@ -53,3 +69,11 @@ if ($menuExit -ne 0) {
 
 & $extScript -CaptureLogFile $CaptureLogFile
 exit $LASTEXITCODE
+
+
+if ($NoExit) {
+    Write-Host "Press any key to exit..."
+    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+}
+
+Exit-WithWait 0

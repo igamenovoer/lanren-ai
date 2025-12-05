@@ -19,11 +19,17 @@ Options: 'cn', 'official', 'tuna'.
 .PARAMETER MirrorPypi
 Specific mirror for PyPI. Overrides -Mirror.
 Options: 'cn', 'official', 'aliyun', 'tuna'.
+
+.PARAMETER NoExit
+When specified, the script will wait for a key press before exiting.
+This is useful when running from a double-clicked .bat file.
 #>
 
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory=$false)]
+    [switch]$NoExit,
+    [Parameter(Mandatory=$false)
+]
     [ValidateSet("cn", "official")]
     [string]$Mirror,
 
@@ -35,20 +41,29 @@ param(
     [ValidateSet("cn", "official", "aliyun", "tuna")]
     [string]$MirrorPypi
 )
+function Exit-WithWait {
+    param([int]$Code = 0)
+    if ($NoExit) {
+        Write-Host "Press any key to exit..."
+        $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    }
+    exit $Code
+}
+
+
 
 if (-not $Mirror -and -not $MirrorConda -and -not $MirrorPypi) {
     Write-Output "Usage: .\config-comp.ps1 [-Mirror <cn|official>] [-MirrorConda <cn|official|tuna>] [-MirrorPypi <cn|official|aliyun|tuna>]"
     Write-Output "  -Mirror      : Sets both Conda and PyPI to preset (cn=tuna)"
     Write-Output "  -MirrorConda : Overrides Conda mirror"
     Write-Output "  -MirrorPypi  : Overrides PyPI mirror"
-    exit 0
 }
 
 $ErrorActionPreference = "Stop"
 
 if (-not (Get-Command pixi -ErrorAction SilentlyContinue)) {
     Write-Error "pixi command not found. Please install pixi first."
-    exit 1
+    Exit-WithWait 1
 }
 
 Write-Output "=== Configuring pixi Global Mirrors ==="
@@ -125,3 +140,11 @@ if ($effectivePypi) {
 }
 
 Write-Output "Configuration complete."
+
+
+if ($NoExit) {
+    Write-Host "Press any key to exit..."
+    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+}
+
+Exit-WithWait 0

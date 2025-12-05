@@ -22,16 +22,32 @@ the default.
 .PARAMETER CaptureLogFile
 Optional log file path. When provided, all output is written here using the
 console default encoding so a .bat wrapper can print it.
+
+.PARAMETER NoExit
+When specified, the script will wait for a key press before exiting.
+This is useful when running from a double-clicked .bat file.
 #>
 
 [CmdletBinding()]
 param(
+    [switch]$NoExit,
     [string]$Proxy,
     [switch]$AcceptDefaults,
     [switch]$FromOfficial,
     [switch]$Force,
     [string]$CaptureLogFile
 )
+function Exit-WithWait {
+    param([int]$Code = 0)
+    if ($NoExit) {
+        Write-Host "Press any key to exit..."
+        $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    }
+    exit $Code
+}
+
+
+
 
 $ErrorActionPreference = "Stop"
 
@@ -53,6 +69,8 @@ function Get-LanrenComponentLogFile {
         [string]$ComponentName
     )
 
+
+
     if (-not $ComponentName) {
         $ComponentName = $script:LanrenComponentName
     }
@@ -72,6 +90,8 @@ function Get-LanrenComponentPackagePath {
         [string]$FileName,
         [string]$ComponentName
     )
+
+
 
     if (-not $ComponentName) {
         $ComponentName = $script:LanrenComponentName
@@ -110,6 +130,8 @@ function Write-OutputLine {
         [string]$LogFile
     )
 
+
+
     $targets = @()
     if ($script:LanrenLogFiles) {
         $targets = $script:LanrenLogFiles
@@ -139,7 +161,6 @@ try {
         $lines += "Bun is already available on PATH (bun command found). Use -Force to reinstall."
         $lines += "No installation performed."
         Write-OutputLine -Content $lines -LogFile $CaptureLogFile
-        exit 0
     }
 } catch {
     $lines += "Warning: Failed to detect existing Bun installation: $($_.Exception.Message)"
@@ -159,7 +180,7 @@ try {
     if ($LASTEXITCODE -ne 0) {
         $lines += "Bun installer returned a non-zero exit code: $LASTEXITCODE"
         Write-OutputLine -Content $lines -LogFile $CaptureLogFile
-        exit 1
+        Exit-WithWait 1
     }
 
     $bunCommand = Get-Command bun -ErrorAction SilentlyContinue
@@ -176,8 +197,13 @@ try {
 } catch {
     $lines += "Error installing Bun: $($_.Exception.Message)"
     Write-OutputLine -Content $lines -LogFile $CaptureLogFile
-    exit 1
+    Exit-WithWait 1
 }
 
 Write-OutputLine -Content $lines -LogFile $CaptureLogFile
-exit 0
+if ($NoExit) {
+    Write-Host "Press any key to exit..."
+    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+}
+
+Exit-WithWait 0

@@ -26,16 +26,32 @@ available on PATH.
 .PARAMETER CaptureLogFile
 Optional log file path. When provided, all output is written here using
 the console default encoding so a .bat wrapper can print it.
+
+.PARAMETER NoExit
+When specified, the script will wait for a key press before exiting.
+This is useful when running from a double-clicked .bat file.
 #>
 
 [CmdletBinding()]
 param(
+    [switch]$NoExit,
     [string]$Proxy,
     [switch]$AcceptDefaults,
     [switch]$FromOfficial,
     [switch]$Force,
     [string]$CaptureLogFile
 )
+function Exit-WithWait {
+    param([int]$Code = 0)
+    if ($NoExit) {
+        Write-Host "Press any key to exit..."
+        $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    }
+    exit $Code
+}
+
+
+
 
 $ErrorActionPreference = "Stop"
 
@@ -57,6 +73,8 @@ function Get-LanrenComponentLogFile {
         [string]$ComponentName
     )
 
+
+
     if (-not $ComponentName) {
         $ComponentName = $script:LanrenComponentName
     }
@@ -76,6 +94,8 @@ function Get-LanrenComponentPackagePath {
         [string]$FileName,
         [string]$ComponentName
     )
+
+
 
     if (-not $ComponentName) {
         $ComponentName = $script:LanrenComponentName
@@ -111,6 +131,8 @@ function Write-OutputLine {
         [string]$LogFile
     )
 
+
+
     $targets = @()
     if ($script:LanrenLogFiles) {
         $targets = $script:LanrenLogFiles
@@ -140,7 +162,6 @@ try {
         $lines += "Visual Studio Code is already available on PATH (code command found). Use -Force to reinstall."
         $lines += "No installation performed by install-vscode-app.ps1."
         Write-OutputLine -Content $lines -LogFile $CaptureLogFile
-        exit 0
     }
 
     if ($Proxy) {
@@ -171,7 +192,6 @@ try {
             $lines += "VS Code installed successfully via winget."
             $lines += "Installer override requested Explorer context menus and PATH integration."
             Write-OutputLine -Content $lines -LogFile $CaptureLogFile
-            exit 0
         }
 
         $lines += "winget install for VS Code did not complete successfully (exit code $exitCode)."
@@ -191,8 +211,14 @@ try {
 } catch {
     $lines += "Error installing Visual Studio Code: $($_.Exception.Message)"
     Write-OutputLine -Content $lines -LogFile $CaptureLogFile
-    exit 1
+    Exit-WithWait 1
 }
 
 Write-OutputLine -Content $lines -LogFile $CaptureLogFile
-exit 1
+Exit-WithWait 1
+if ($NoExit) {
+    Write-Host "Press any key to exit..."
+    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+}
+
+Exit-WithWait 0

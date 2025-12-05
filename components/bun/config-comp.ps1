@@ -12,20 +12,35 @@ The mirror to use.
 Options:
 - 'cn': Uses the npmmirror registry (https://registry.npmmirror.com).
 - 'official': Uses the official npm registry (https://registry.npmjs.org).
+
+.PARAMETER NoExit
+When specified, the script will wait for a key press before exiting.
+This is useful when running from a double-clicked .bat file.
 #>
 
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory=$false)]
+    [switch]$NoExit,
+    [Parameter(Mandatory=$false)
+]
     [ValidateSet("cn", "official")]
     [string]$Mirror
 )
+function Exit-WithWait {
+    param([int]$Code = 0)
+    if ($NoExit) {
+        Write-Host "Press any key to exit..."
+        $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    }
+    exit $Code
+}
+
+
 
 if (-not $Mirror) {
     Write-Output "Usage: .\config-comp.ps1 -Mirror <cn|official>"
     Write-Output "  cn       : Use npmmirror.com (China)"
     Write-Output "  official : Use npmjs.org"
-    exit 0
 }
 
 $ErrorActionPreference = "Stop"
@@ -79,3 +94,11 @@ if ($content -match '(?m)^registry\s*=\s*".*"') {
 $content | Out-File -FilePath $bunfigPath -Encoding utf8 -Force
 
 Write-Output "Configuration complete."
+
+
+if ($NoExit) {
+    Write-Host "Press any key to exit..."
+    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+}
+
+Exit-WithWait 0

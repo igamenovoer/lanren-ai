@@ -14,14 +14,30 @@ Options:
 - 'aliyun': Uses Aliyun mirror (https://mirrors.aliyun.com/pypi/simple/).
 - 'tuna': Uses Tsinghua University mirror (https://pypi.tuna.tsinghua.edu.cn/simple).
 - 'official': Uses the official PyPI registry (https://pypi.org/simple).
+
+.PARAMETER NoExit
+When specified, the script will wait for a key press before exiting.
+This is useful when running from a double-clicked .bat file.
 #>
 
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory=$false)]
+    [switch]$NoExit,
+    [Parameter(Mandatory=$false)
+]
     [ValidateSet("cn", "aliyun", "tuna", "official")]
     [string]$Mirror
 )
+function Exit-WithWait {
+    param([int]$Code = 0)
+    if ($NoExit) {
+        Write-Host "Press any key to exit..."
+        $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    }
+    exit $Code
+}
+
+
 
 if (-not $Mirror) {
     Write-Output "Usage: .\config-comp.ps1 -Mirror <cn|aliyun|tuna|official>"
@@ -29,7 +45,6 @@ if (-not $Mirror) {
     Write-Output "  aliyun   : Use Aliyun mirror"
     Write-Output "  tuna     : Use Tsinghua University mirror"
     Write-Output "  official : Use official PyPI"
-    exit 0
 }
 
 $ErrorActionPreference = "Stop"
@@ -89,3 +104,11 @@ $content | Out-File -FilePath $configPath -Encoding utf8 -Force
 
 Write-Output "Configuration complete."
 Write-Output "Config file location: $configPath"
+
+
+if ($NoExit) {
+    Write-Host "Press any key to exit..."
+    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+}
+
+Exit-WithWait 0

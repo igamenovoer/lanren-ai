@@ -19,16 +19,32 @@ When specified, forces use of the official PyPI index instead of China mirrors.
 .PARAMETER CaptureLogFile
 Optional log file path. When provided, all output is written here using the
 console default encoding so a .bat wrapper can print it.
+
+.PARAMETER NoExit
+When specified, the script will wait for a key press before exiting.
+This is useful when running from a double-clicked .bat file.
 #>
 
 [CmdletBinding()]
 param(
+    [switch]$NoExit,
     [string]$Proxy,
     [switch]$AcceptDefaults,
     [switch]$FromOfficial,
     [switch]$Force,
     [string]$CaptureLogFile
 )
+function Exit-WithWait {
+    param([int]$Code = 0)
+    if ($NoExit) {
+        Write-Host "Press any key to exit..."
+        $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    }
+    exit $Code
+}
+
+
+
 
 $ErrorActionPreference = "Stop"
 
@@ -50,6 +66,8 @@ function Get-LanrenComponentLogFile {
         [string]$ComponentName
     )
 
+
+
     if (-not $ComponentName) {
         $ComponentName = $script:LanrenComponentName
     }
@@ -69,6 +87,8 @@ function Get-LanrenComponentPackagePath {
         [string]$FileName,
         [string]$ComponentName
     )
+
+
 
     if (-not $ComponentName) {
         $ComponentName = $script:LanrenComponentName
@@ -106,6 +126,8 @@ function Write-OutputLine {
         [string]$LogFile
     )
 
+
+
     $targets = @()
     if ($script:LanrenLogFiles) {
         $targets = $script:LanrenLogFiles
@@ -133,6 +155,8 @@ function Test-ToolOnPath {
     param(
         [string]$CommandName
     )
+
+
     $cmd = Get-Command $CommandName -ErrorAction SilentlyContinue
     return [bool]$cmd
 }
@@ -142,13 +166,12 @@ try {
         $lines += "Error: uv is not available on PATH."
         $lines += "Install uv first (see components/uv/install-comp)."
         Write-OutputLine -Content $lines -LogFile $CaptureLogFile
-        exit 1
+        Exit-WithWait 1
     }
 
     if ((Test-ToolOnPath -CommandName "markitdown") -and -not $Force) {
         $lines += "MarkItDown is already available on PATH. Use -Force to reinstall."
         Write-OutputLine -Content $lines -LogFile $CaptureLogFile
-        exit 0
     }
 
     if ($Proxy) {
@@ -184,15 +207,20 @@ try {
     if ($exitCode -ne 0) {
         $lines += "Error: uv failed to install MarkItDown (exit code $exitCode)."
         Write-OutputLine -Content $lines -LogFile $CaptureLogFile
-        exit 1
+        Exit-WithWait 1
     }
 
     $lines += "MarkItDown installed successfully via uv tool."
 } catch {
     $lines += "Error installing MarkItDown: $($_.Exception.Message)"
     Write-OutputLine -Content $lines -LogFile $CaptureLogFile
-    exit 1
+    Exit-WithWait 1
 }
 
 Write-OutputLine -Content $lines -LogFile $CaptureLogFile
-exit 0
+if ($NoExit) {
+    Write-Host "Press any key to exit..."
+    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+}
+
+Exit-WithWait 0
