@@ -43,9 +43,6 @@ function Exit-WithWait {
     exit $Code
 }
 
-
-
-
 $ErrorActionPreference = "Stop"
 
 $script:LanrenComponentName = Split-Path -Leaf $PSScriptRoot

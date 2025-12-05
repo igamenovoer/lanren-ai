@@ -150,35 +150,32 @@ try {
     }
 
     $lines += ""
-    $lines += "Configuring Claude Code to skip onboarding..."
+    $lines += "Configuring Claude Code to skip onboarding using config-skip-login.ps1..."
 
-    $configFile = Join-Path $env:USERPROFILE ".claude.json"
-    $config = @{}
-
-    if (Test-Path $configFile) {
-        try {
-            $configContent = Get-Content $configFile -Raw -ErrorAction Stop
-            if ($configContent.Trim().Length -gt 0) {
-                $config = $configContent | ConvertFrom-Json -AsHashtable -ErrorAction Stop
-                $lines += "Existing configuration loaded from $configFile"
-            } else {
-                $lines += "Existing configuration file is empty; starting fresh."
-            }
-        } catch {
-            $lines += "Existing configuration is invalid JSON; starting fresh."
-            $config = @{}
-        }
-    } else {
-        $lines += "No existing configuration found; creating a new one."
+    $skipScript = Join-Path $PSScriptRoot "config-skip-login.ps1"
+    if (-not (Test-Path $skipScript)) {
+        $lines += "Error: Expected helper script not found: $skipScript"
+        Write-OutputLine -Content $lines -LogFile $CaptureLogFile
+        Exit-WithWait 1
     }
 
-    $config.hasCompletedOnboarding = $true
+    $lines += "Running: powershell -NoProfile -ExecutionPolicy Bypass -File `"$skipScript`""
 
-    $json = $config | ConvertTo-Json -Depth 10
-    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
-    [System.IO.File]::WriteAllText($configFile, $json, $utf8NoBom)
+    # Flush current log before running the helper
+    Write-OutputLine -Content $lines -LogFile $CaptureLogFile
 
-    $lines += "Updated configuration file: $configFile"
+    & powershell -NoProfile -ExecutionPolicy Bypass -File $skipScript
+    $helperExit = $LASTEXITCODE
+
+    if ($helperExit -ne 0) {
+        $lines += ""
+        $lines += "Error: config-skip-login.ps1 failed with exit code $helperExit."
+        $lines += "Claude Code CLI was installed, but onboarding may not be skipped."
+        Write-OutputLine -Content $lines -LogFile $CaptureLogFile
+        Exit-WithWait 1
+    }
+
+    $lines += ""
     $lines += "Claude Code onboarding/login should now be skipped on this host."
 } catch {
     $lines += "Error installing or configuring Claude Code CLI: $($_.Exception.Message)"
