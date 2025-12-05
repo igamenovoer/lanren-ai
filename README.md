@@ -206,6 +206,23 @@ PowerShell 7 会作为后续脚本的推荐运行环境，更稳定、功能也�
   - 作用：  
     - 在 PowerShell 中创建一个别名命令，例如 `claude-kimi`。  
     - 以后在 PowerShell 里输入 `claude-kimi`，脚本会自动设置好自定义 Endpoint 和 API Key，并以此启动 `claude`。  
+  - 模型与环境变量配置说明（可选）：  
+    - 运行脚本时，交互顺序大致为：  
+      1. 输入别名（例如 `claude-kimi`）；  
+      2. 输入 Base URL：  
+         - 可以留空：直接按回车表示使用官方默认 Endpoint，此时别名不会修改 `ANTHROPIC_BASE_URL`；  
+         - 如需自定义，必须以 `http://` 或 `https://` 开头（例如 `https://api.moonshot.cn/anthropic/`）；  
+      3. 输入 API Key（必填，用于设置 `ANTHROPIC_API_KEY`）；  
+      4. 可选输入「主模型（Primary，大模型）」名称（例如：`kimi-k2-thinking-turbo`）；  
+      5. 若填写了主模型，脚本会再询问「副模型（Secondary，小模型）」名称：  
+         - 留空：默认与主模型相同；  
+         - 填写：使用你指定的模型名作为小模型。  
+    > 如果你想查看脚本到底在别名函数里设置了哪些环境变量，可以按下面的步骤：  
+    > 1. 同时按下键盘上的 `Win + R`，打开「运行」窗口。  
+    > 2. 在输入框中粘贴这一整行命令：`powershell -NoLogo -Command "notepad $PROFILE"`  
+    > 3. 按回车，稍等几秒会自动弹出一个记事本窗口。  
+    > 4. 在记事本中按 `Ctrl + F` 搜索你刚刚配置的别名名称（例如 `claude-kimi`），就能看到完整的函数定义和所有被设置的环境变量。  
+    - 如果你暂时不确定要填什么模型名，可以先跳过主模型 / 副模型配置，只用默认行为；之后随时可以重新运行脚本更新该别名。  
   - 如果你在寻找第三方兼容 Claude / OpenAI 的代理或网关，可以参考这个收集仓库：  
     - <https://github.com/mn-api/awesome-ai-proxy>  
     - 里面列出了很多第三方 API 提供商，你可以从中挑选一个支持 Claude / OpenAI 的服务，按照对方文档拿到「接口地址（Base URL）」和「API Key」，再填进本脚本提示即可。  

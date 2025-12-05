@@ -21,6 +21,9 @@ The function looks like:
         )
         $env:ANTHROPIC_BASE_URL = "<base_url>"
         $env:ANTHROPIC_API_KEY  = "<api_key>"
+        # When primary/secondary models are provided, the helper also sets:
+        #   - Primary model (big):   ANTHROPIC_MODEL, ANTHROPIC_DEFAULT_OPUS_MODEL, ANTHROPIC_DEFAULT_SONNET_MODEL
+        #   - Secondary model (small): ANTHROPIC_DEFAULT_HAIKU_MODEL, CLAUDE_CODE_SUBAGENT_MODEL
         claude --dangerously-skip-permissions @ForwardArgs
     }
 
@@ -28,10 +31,16 @@ The function looks like:
 Name of the function/alias to create (e.g. claude-kimi).
 
 .PARAMETER BaseUrl
-Base URL of the custom endpoint (must start with http:// or https://).
+Base URL of the custom endpoint (must start with http:// or https:// when provided). If omitted, the alias will not change ANTHROPIC_BASE_URL and Claude Code will use its default endpoint.
 
 .PARAMETER ApiKey
 API key for the custom endpoint. Stored in your PowerShell profiles as plain text.
+
+.PARAMETER PrimaryModelName
+Optional primary (big) model name. When provided, the generated alias function sets ANTHROPIC_MODEL and the default OPUS/SONNET models to this value before launching Claude Code.
+
+.PARAMETER SecondaryModelName
+Optional secondary (small) model name. When provided, the generated alias function sets the default HAIKU model and CLAUDE_CODE_SUBAGENT_MODEL to this value. If omitted but PrimaryModelName is set, the secondary model defaults to the primary.
 
 .PARAMETER NoExit
 When specified, the script will wait for a key press before exiting.
@@ -43,7 +52,9 @@ param(
     [switch]$NoExit,
     [string]$AliasName,
     [string]$BaseUrl,
-    [string]$ApiKey
+    [string]$ApiKey,
+    [string]$PrimaryModelName,
+    [string]$SecondaryModelName
 )
 
 function Exit-WithWait {
@@ -80,10 +91,16 @@ try {
         $AliasName = Read-Host "Enter alias name"
     }
     if (-not $BaseUrl) {
-        $BaseUrl = Read-Host "Base URL (must include http/https, e.g. https://api.moonshot.cn/anthropic/)"
+        $BaseUrl = Read-Host "Base URL (optional; must include http/https when set, e.g. https://api.moonshot.cn/anthropic/; press Enter to use the official endpoint)"
     }
     if (-not $ApiKey) {
         $ApiKey = Read-Host "API key (will be stored in your PowerShell profiles as plain text)"
+    }
+    if (-not $PrimaryModelName) {
+        $PrimaryModelName = Read-Host "Primary model (big; optional, e.g. kimi-k2-thinking-turbo; press Enter to skip)"
+    }
+    if ($PrimaryModelName -and -not $SecondaryModelName) {
+        $SecondaryModelName = Read-Host "Secondary model (small; optional; press Enter to reuse the primary model)"
     }
 
     if (-not $AliasName) {
@@ -94,12 +111,8 @@ try {
         Write-Err "Alias name '$AliasName' has invalid characters. Allowed: A-Z, a-z, 0-9, underscore, hyphen."
         Exit-WithWait 1
     }
-    if (-not $BaseUrl) {
-        Write-Err "Base URL cannot be empty."
-        Exit-WithWait 1
-    }
-    if ($BaseUrl -notmatch '^https?://') {
-        Write-Err "Base URL must start with http:// or https://."
+    if ($BaseUrl -and $BaseUrl -notmatch '^https?://') {
+        Write-Err "Base URL must start with http:// or https:// when provided."
         Exit-WithWait 1
     }
     if (-not $ApiKey) {
@@ -135,8 +148,32 @@ try {
     $functionLines += "        [Parameter(ValueFromRemainingArguments = `$true)]"
     $functionLines += "        [object[]]`$ForwardArgs"
     $functionLines += "    )"
-    $functionLines += "    `$env:ANTHROPIC_BASE_URL = '$BaseUrl'"
-    $functionLines += "    `$env:ANTHROPIC_API_KEY  = '$ApiKey'"
+    if ($BaseUrl) {
+        $functionLines += "    `$env:ANTHROPIC_BASE_URL = '$BaseUrl'"
+    }
+    $functionLines += "    `$env:ANTHROPIC_API_KEY    = '$ApiKey'"
+
+    $primaryForEnv = $PrimaryModelName
+    $secondaryForEnv = $SecondaryModelName
+    if ($primaryForEnv -and -not $secondaryForEnv) {
+        $secondaryForEnv = $primaryForEnv
+    }
+
+    # Only touch model-related env vars when a primary model is set.
+    if ($primaryForEnv) {
+        $functionLines += "    `$env:ANTHROPIC_MODEL                = '$primaryForEnv'"
+        $functionLines += "    `$env:ANTHROPIC_DEFAULT_OPUS_MODEL   = '$primaryForEnv'"
+        $functionLines += "    `$env:ANTHROPIC_DEFAULT_SONNET_MODEL = '$primaryForEnv'"
+
+        if ($secondaryForEnv) {
+            $functionLines += "    `$env:ANTHROPIC_DEFAULT_HAIKU_MODEL  = '$secondaryForEnv'"
+        }
+
+        $chosenSubagentModel = $primaryForEnv
+        if ($chosenSubagentModel) {
+            $functionLines += "    `$env:CLAUDE_CODE_SUBAGENT_MODEL     = '$chosenSubagentModel'"
+        }
+    }
     $functionLines += "    claude --dangerously-skip-permissions @ForwardArgs"
     $functionLines += "}"
     $functionLines += $endMarker

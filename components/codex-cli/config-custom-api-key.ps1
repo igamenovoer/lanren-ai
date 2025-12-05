@@ -29,7 +29,7 @@ The PowerShell alias function looks like:
 Name of the PowerShell function/alias to create (for example: codex-openai-proxy).
 
 .PARAMETER BaseUrl
-Base URL of the custom OpenAI-compatible endpoint (must start with http:// or https://).
+Base URL of the custom OpenAI-compatible endpoint (must start with http:// or https:// when provided). If omitted, the official OpenAI endpoint is used and OPENAI_BASE_URL is not modified in your shell.
 
 .PARAMETER ApiKey
 API key for the endpoint. Stored in your PowerShell profiles as plain text.
@@ -81,7 +81,7 @@ try {
         $AliasName = Read-Host "Enter alias name"
     }
     if (-not $BaseUrl) {
-        $BaseUrl = Read-Host "Base URL (must include http/https, e.g. https://api.example.com/v1)"
+        $BaseUrl = Read-Host "Base URL (optional; must include http/https when set, e.g. https://api.example.com/v1; press Enter to use the official OpenAI endpoint)"
     }
     if (-not $ApiKey) {
         $ApiKey = Read-Host "API key (will be stored in your PowerShell profiles as plain text)"
@@ -95,12 +95,8 @@ try {
         Write-Err "Alias name '$AliasName' has invalid characters. Allowed: A-Z, a-z, 0-9, underscore, hyphen."
         Exit-WithWait 1
     }
-    if (-not $BaseUrl) {
-        Write-Err "Base URL cannot be empty."
-        Exit-WithWait 1
-    }
-    if ($BaseUrl -notmatch '^https?://') {
-        Write-Err "Base URL must start with http:// or https://."
+    if ($BaseUrl -and $BaseUrl -notmatch '^https?://') {
+        Write-Err "Base URL must start with http:// or https:// when provided."
         Exit-WithWait 1
     }
     if (-not $ApiKey) {
@@ -160,7 +156,9 @@ try {
     $functionLines += "        [Parameter(ValueFromRemainingArguments = `$true)]"
     $functionLines += "        [object[]]`$ForwardArgs"
     $functionLines += "    )"
-    $functionLines += "    `$env:OPENAI_BASE_URL = '$BaseUrl'"
+    if ($BaseUrl) {
+        $functionLines += "    `$env:OPENAI_BASE_URL = '$BaseUrl'"
+    }
     $functionLines += "    `$env:OPENAI_API_KEY  = '$ApiKey'"
     $functionLines += "    codex @ForwardArgs"
     $functionLines += "}"
@@ -260,11 +258,16 @@ try {
     }
 
     # Append new provider block that uses env key and skips login
+    $effectiveBaseUrl = $BaseUrl
+    if (-not $effectiveBaseUrl) {
+        $effectiveBaseUrl = "https://api.openai.com/v1"
+    }
+
     $providerLines = @()
     $providerLines += ""
     $providerLines += "[model_providers.$providerId]"
     $providerLines += 'name = "Custom OpenAI-compatible endpoint"'
-    $providerLines += "base_url = `"$BaseUrl`""
+    $providerLines += "base_url = `"$effectiveBaseUrl`""
     $providerLines += 'env_key = "OPENAI_API_KEY"'
     $providerLines += 'env_key_instructions = "Set OPENAI_API_KEY in your environment or use the PowerShell alias function to launch Codex."'
     $providerLines += "requires_openai_auth = false"
