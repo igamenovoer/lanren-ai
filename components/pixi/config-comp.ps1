@@ -53,10 +53,10 @@ function Exit-WithWait {
 
 
 if (-not $Mirror -and -not $MirrorConda -and -not $MirrorPypi) {
-    Write-Output "Usage: .\config-comp.ps1 [-Mirror <cn|official>] [-MirrorConda <cn|official|tuna>] [-MirrorPypi <cn|official|aliyun|tuna>]"
-    Write-Output "  -Mirror      : Sets both Conda and PyPI to preset (cn=tuna)"
-    Write-Output "  -MirrorConda : Overrides Conda mirror"
-    Write-Output "  -MirrorPypi  : Overrides PyPI mirror"
+    Write-Output "No mirror arguments specified; defaulting -Mirror to 'cn' (Tsinghua mirrors)."
+    Write-Output "You can also run:"
+    Write-Output "  .\config-comp.ps1 [-Mirror <cn|official>] [-MirrorConda <cn|official|tuna>] [-MirrorPypi <cn|official|aliyun|tuna>]"
+    $Mirror = "cn"
 }
 
 $ErrorActionPreference = "Stop"

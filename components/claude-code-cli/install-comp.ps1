@@ -101,6 +101,7 @@ try {
     if ((Test-ToolOnPath -CommandName "claude") -and -not $Force) {
         $lines += "Claude Code CLI is already available on PATH. Use -Force to reinstall."
         Write-OutputLine -Content $lines -LogFile $CaptureLogFile
+        Exit-WithWait 0
     }
 
     if ($Proxy) {

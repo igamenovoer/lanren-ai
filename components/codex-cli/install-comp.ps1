@@ -188,6 +188,7 @@ try {
     if ($isInstalled -and -not $Force) {
         $lines += "Package $packageName is already installed globally. Use -Force to reinstall."
         Write-OutputLine -Content $lines -LogFile $CaptureLogFile
+        Exit-WithWait 0
     }
 
     if ($Proxy) {

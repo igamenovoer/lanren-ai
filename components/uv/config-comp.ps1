@@ -40,11 +40,10 @@ function Exit-WithWait {
 
 
 if (-not $Mirror) {
-    Write-Output "Usage: .\config-comp.ps1 -Mirror <cn|aliyun|tuna|official>"
-    Write-Output "  cn       : Use Aliyun mirror (default for China)"
-    Write-Output "  aliyun   : Use Aliyun mirror"
-    Write-Output "  tuna     : Use Tsinghua University mirror"
-    Write-Output "  official : Use official PyPI"
+    Write-Output "No -Mirror specified; defaulting to 'cn' (Aliyun mirror)."
+    Write-Output "You can also run:"
+    Write-Output "  .\config-comp.ps1 -Mirror <cn|aliyun|tuna|official>"
+    $Mirror = "cn"
 }
 
 $ErrorActionPreference = "Stop"

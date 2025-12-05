@@ -161,6 +161,7 @@ try {
         $lines += "Bun is already available on PATH (bun command found). Use -Force to reinstall."
         $lines += "No installation performed."
         Write-OutputLine -Content $lines -LogFile $CaptureLogFile
+        Exit-WithWait 0
     }
 } catch {
     $lines += "Warning: Failed to detect existing Bun installation: $($_.Exception.Message)"

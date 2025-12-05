@@ -166,6 +166,7 @@ try {
         $lines += "uv is already available on PATH. Use -Force to reinstall."
         $lines += "No installation performed."
         Write-OutputLine -Content $lines -LogFile $CaptureLogFile
+        Exit-WithWait 0
     }
 
     if ($Proxy) {
@@ -224,6 +225,27 @@ try {
         }
 
         $lines += "uv installed successfully via official install script."
+    }
+
+    # Ensure uv's tool bin directory is added to PATH so installed tools
+    # (e.g., markitdown) are directly callable.
+    try {
+        if (Test-ToolOnPath -CommandName "uv") {
+            $lines += "Running: uv tool update-shell (to add the uv tools bin directory to PATH)."
+            & uv tool update-shell
+            $updateExit = $LASTEXITCODE
+
+            if ($updateExit -ne 0) {
+                $lines += "Warning: 'uv tool update-shell' exited with code $updateExit."
+                $lines += "You may need to add the uv tools bin directory (e.g. %USERPROFILE%\\.local\\bin) to PATH manually."
+            } else {
+                $lines += "uv tool update-shell completed. Restart your shell so PATH changes take effect."
+            }
+        } else {
+            $lines += "uv installation completed, but 'uv' is not currently on PATH; skipping 'uv tool update-shell'."
+        }
+    } catch {
+        $lines += "Warning: Failed to run 'uv tool update-shell': $($_.Exception.Message)"
     }
 } catch {
     $lines += "Error installing uv: $($_.Exception.Message)"

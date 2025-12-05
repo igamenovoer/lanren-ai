@@ -172,6 +172,7 @@ try {
     if ((Test-ToolOnPath -CommandName "markitdown") -and -not $Force) {
         $lines += "MarkItDown is already available on PATH. Use -Force to reinstall."
         Write-OutputLine -Content $lines -LogFile $CaptureLogFile
+        Exit-WithWait 0
     }
 
     if ($Proxy) {

@@ -166,6 +166,7 @@ try {
         $lines += "pixi is already available on PATH. Use -Force to reinstall."
         $lines += "No installation performed."
         Write-OutputLine -Content $lines -LogFile $CaptureLogFile
+        Exit-WithWait 0
     }
 
     if ($Proxy) {
