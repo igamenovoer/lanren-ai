@@ -2,16 +2,22 @@
 
 The `components/` directory is a home for per-component installers and helpers. Each component (library, tool, or piece of software) gets its own subdirectory under `components/`, and that subdirectory contains the scripts and assets needed to download, install, and configure it.
 
-Example structure:
+Example structure (matching this repo):
 
-- `components/vscode/`
-- `components/docker-desktop/`
-- `components/claude-code-cli/`
+- `components/winget/` – ensure Windows Package Manager is available.
+- `components/powershell-7/` – install PowerShell 7.
+- `components/vscode/` – install VS Code and extensions.
+- `components/jq/`, `components/yq/`, `components/git/` – common CLI tools.
+- `components/uv/`, `components/pixi/`, `components/nodejs/`, `components/bun/`, `components/aria2/` – runtimes, package managers, download helper.
+- `components/claude-code-cli/`, `components/codex-cli/`, `components/markitdown/` – AI CLIs and document tools.
+
+The recommended high-level installation order is documented in `components/INSTALL_ORDER.md` and mirrored by the root `install-everything.bat` helper.
 
 ## Standard Scripts per Component
 
 Each component subdirectory contains a PowerShell installer script.
 - The `.ps1` script is standalone-callable (including from PowerShell/VSCode).
+- Most components also provide a thin `.bat` wrapper (for double-click usage) that forwards arguments to the corresponding `.ps1`.
 - **Important:** Before running any `.ps1` scripts, please run the `<workspace>/enable-ps1-permission.bat` script once to allow PowerShell script execution.
 - Per-component installers should be **self-contained** within their own directory under `components/` and must not depend on scripts located elsewhere in the repository (for example, do not call helpers under `scripts\` from `components\claude-code-cli\install-comp.ps1`; instead, embed the necessary logic directly in the per-component installer).
 
@@ -20,7 +26,7 @@ Where possible, component subdirectories should expose the following standard to
 ### `install-comp.ps1`
 
 - Purpose: Perform the actual installation from a prepared directory.
-- Files: `install-comp.ps1`.
+- Files: `install-comp.ps1` (plus `install-comp.bat` wrapper in most components).
 - Key arguments:
   - PowerShell:
     - `-Proxy <url>` (or `-ProxyUrl <url>`) to specify an HTTP/HTTPS proxy for downloads and networked installers.
@@ -33,12 +39,13 @@ Where possible, component subdirectories should expose the following standard to
 - Behavior:
   - Does not take an `--input-dir` / `-InputDir` parameter.
   - If the component is available via `winget`, installers should **prefer `winget` as the primary installation method**, using direct downloads or language-specific tools (`npm install`, `uv tool install`, etc.) only as a fallback when `winget` is unavailable or unsuitable.
-  - Logging:
-    - Every `install-comp.ps1` and `config-comp.ps1` writes its log output to a component-scoped file under a shared output directory:
+  - Logging (standard pattern used by newer installers such as `winget`, `powershell-7`, `vscode`, `jq`, `yq`, `git`, `uv`, `pixi`, `nodejs`, `bun`, `aria2`, `markitdown`, `codex-cli`, etc.):
+    - Each installer writes log output to a component-scoped file under a shared output directory:
       - Default root: `<pwd>\lanren-cache\`
       - Logs: `<root>\logs\<component-name>\<timestamp>.log`
     - When the environment variable `LRAI_MASTER_OUTPUT_DIR` is set, its value is used as `<root>` instead of `<pwd>\lanren-cache`.
-    - When `-CaptureLogFile` is provided, scripts continue to mirror their log output to the caller-specified path in addition to the standard log file.
+    - When `-CaptureLogFile` is provided, scripts mirror their log output to the caller-specified path in addition to the standard log file.
+    - Older or more ad-hoc scripts at minimum support `-CaptureLogFile` and console output; new components should migrate to the shared logging helpers used by the installers above.
   - Manual downloads:
     - If manual downloads are required (e.g., MSI/ZIP/installer, standalone scripts), the script saves them under a component-scoped packages directory under the same root:
       - Packages: `<root>\packages\<component-name>\<filename>`
@@ -52,14 +59,46 @@ Where possible, component subdirectories should expose the following standard to
 
 ### `config-comp.ps1`
 
-- Purpose: Apply post-install configuration for the component.
-- Files: `config-comp.ps1`.
-- Arguments: Component-specific (e.g., API keys, paths, profile names). Each `.ps1` must document its parameters via comment-based help, support an optional `-CaptureLogFile`, and expose a "say yes" switch for accepting defaults.
+- Purpose: Apply post-install configuration for the component (for example, setting mirrors for `uv`/`pixi`/`nodejs`/`bun`).
+- Files: `config-comp.ps1` (plus optional `.bat` wrapper).
+- Arguments: Component-specific (e.g., API keys, paths, profile names). Each `.ps1` should:
+  - Document its parameters via comment-based help.
+  - Support an optional `-CaptureLogFile`.
+  - Expose a "say yes" switch for accepting defaults.
+- In addition to the generic `config-comp.ps1`, some components expose more focused configuration helpers that follow the same conventions, e.g.:
+  - `components\claude-code-cli\config-skip-login.ps1`
+  - `components\claude-code-cli\config-custom-api-key.ps1`
+  - `components\claude-code-cli\config-context7-mcp.ps1`
+  - `components\claude-code-cli\config-tavily-mcp.ps1`
+  - `components\codex-cli\config-custom-api-key.ps1`
+  - `components\codex-cli\config-context7-mcp.ps1`
+  - `components\codex-cli\config-tavily-mcp.ps1`
 
 ## Component-Specific Scripts
 
-A component directory may also contain additional helpers (e.g., `reset-comp.ps1`, `test-comp.ps1`, `export-comp-config.ps1`). These scripts are free-form but should:
+A component directory may also contain additional helpers (e.g., `reset-comp.ps1`, `test-comp.ps1`, `export-comp-config.ps1`, `install-vscode-app.ps1`, `install-extensions.ps1`). These scripts are free-form but should:
 
-- Keep naming consistent (`*-comp.*` where it makes sense).
+- Keep naming consistent (`*-comp.*` or clear verbs like `install-*` / `config-*` where it makes sense).
 - Use `-WhatIf` or dry-run options for destructive operations.
-- Log clearly to the console.
+- Log clearly to the console and, where practical, reuse the shared logging helpers so output ends up in `lanren-cache`.
+
+## Current Components (summary)
+
+As of this version of the repo, the following components live under `components/`:
+
+- `aria2/` – installs the `aria2c` command-line download utility.
+- `bun/` – installs the Bun JavaScript runtime and optionally configures npm registry mirrors (`config-comp.ps1`).
+- `claude-code-cli/` – installs the Anthropic Claude Code CLI and provides configuration helpers for skipping onboarding, setting custom API endpoints, and wiring Context7/Tavily MCP.
+- `codex-cli/` – installs the OpenAI Codex CLI and provides configuration helpers for custom API endpoints and Context7/Tavily MCP.
+- `git/` – installs Git for Windows.
+- `jq/` – installs the `jq` JSON command-line processor.
+- `markitdown/` – installs the MarkItDown document-to-Markdown tool (via `uv`).
+- `nodejs/` – installs Node.js (LTS preferred) and optionally configures npm registry mirrors (`config-comp.ps1`).
+- `pixi/` – installs the `pixi` environment manager and can configure conda/PyPI mirrors (`config-comp.ps1`).
+- `powershell-7/` – installs PowerShell 7.
+- `uv/` – installs the `uv` Python toolchain and can configure PyPI mirrors (`config-comp.ps1`).
+- `vscode/` – installs VS Code itself (`install-vscode-app.*`) and, optionally, a curated extensions set (`install-extensions.*`).
+- `winget/` – ensures the Windows Package Manager (`winget`) is present.
+- `yq/` – installs the `yq` YAML/JSON/XML processor.
+
+For detailed behavior, flags, and mirror choices, see the `README.md` inside each component subdirectory.

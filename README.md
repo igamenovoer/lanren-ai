@@ -14,7 +14,10 @@
 - 基础命令行工具（Git、jq、yq 等）
 - 开发环境（Python / Node.js 及相关包管理器）
 - AI 编码助手：**Claude Code CLI** 和 **OpenAI Codex CLI**
-- 一些基于 MCP 的扩展工具（如 Context7、Tavily、MarkItDown）
+- 一些基于 MCP 的扩展工具：
+  - **Context7**：由 Upstash 提供的文档检索 MCP Server，可以给 Claude / Codex 等编码助手实时查最新、指定版本的库文档，减少「用旧版本 API 写代码」的问题；
+  - **Tavily**：提供联网搜索 / 新闻检索等能力的 MCP Server；
+  - **MarkItDown**：把 PDF / Office 文档批量转换成 Markdown，方便丢给大模型处理内容。
 
 你不需要会编程，也不需要会用 git 或命令行，只要按照下面的步骤一点点双击脚本，即可把电脑变成「可以随时召唤 AI 编码助手帮忙处理文档与日常任务」的工作台。
 
