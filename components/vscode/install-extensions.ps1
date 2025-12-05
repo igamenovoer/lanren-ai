@@ -150,21 +150,23 @@ function Get-CodeCliPath {
         return $codeCmd.Path
     }
 
-    $candidates = @()
-    if ($env:LOCALAPPDATA) {
-        $candidates += (Join-Path $env:LOCALAPPDATA 'Programs\Microsoft VS Code\bin\code.cmd')
-    }
-    if ($env:ProgramFiles) {
-        $candidates += (Join-Path $env:ProgramFiles 'Microsoft VS Code\bin\code.cmd')
-    }
-    if (${env:ProgramFiles(x86)}) {
-        $candidates += (Join-Path ${env:ProgramFiles(x86)} 'Microsoft VS Code\bin\code.cmd')
-    }
+    try {
+        $machinePath = [Environment]::GetEnvironmentVariable("Path","Machine")
+        $userPath    = [Environment]::GetEnvironmentVariable("Path","User")
 
-    foreach ($candidate in $candidates) {
-        if (Test-Path $candidate) {
-            return $candidate
+        $combined = @()
+        if ($machinePath) { $combined += $machinePath }
+        if ($userPath)    { $combined += $userPath }
+
+        if ($combined.Count -gt 0) {
+            $env:Path = ($combined -join ";")
+            $codeCmd = Get-Command code -ErrorAction SilentlyContinue
+            if ($codeCmd) {
+                return $codeCmd.Path
+            }
         }
+    } catch {
+        # If we fail to refresh PATH from registry, fall through and return $null
     }
 
     return $null
