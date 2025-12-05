@@ -195,6 +195,10 @@ PowerShell 7 会作为后续脚本的推荐运行环境，更稳定、功能也�
   - 如果你在寻找第三方兼容 Claude / OpenAI 的代理或网关，可以参考这个收集仓库：  
     - <https://github.com/mn-api/awesome-ai-proxy>  
     - 里面列出了很多第三方 API 提供商，你可以从中挑选一个支持 Claude / OpenAI 的服务，按照对方文档拿到「接口地址（Base URL）」和「API Key」，再填进本脚本提示即可。  
+   - 如果你想使用国内厂商提供的兼容接口，也可以考虑：  
+     - SiliconFlow（硅基流动）：<https://siliconflow.cn/>（提供多家模型的统一 API）  
+     - Kimi 官方网站：<https://kimi.moonshot.cn/>（按官方文档申请并获取对应的 API Key）  
+     具体怎么获取、使用这些平台的 Key，请以各自官网的说明为准。  
 
 #### 6.3 为 Claude 配置 Tavily MCP（可选）
 
@@ -237,6 +241,10 @@ Tavily MCP 可以让 Claude 具备联网搜索等能力。使用前需要先在 
   - 如果你希望使用第三方 OpenAI 兼容代理（比如国内加速或自建代理），也可以参考：  
     - <https://github.com/mn-api/awesome-ai-proxy>  
     - 在该列表中挑选一个支持 OpenAI 协议的服务，按对方文档拿到接口地址和 API Key，再在本脚本的提示中填入即可。  
+   - 如果你更倾向于使用国内厂商的兼容接口，同样可以关注：  
+     - SiliconFlow（硅基流动）：<https://siliconflow.cn/>  
+     - Kimi 官方网站：<https://kimi.moonshot.cn/>  
+     这些平台通常会提供 OpenAI 协议或相似的兼容层，获取 API Key 和调用方式都以各自官方文档为准。  
 
 #### 7.3 为 Codex 配置 Tavily MCP（可选）
 
