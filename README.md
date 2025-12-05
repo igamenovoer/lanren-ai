@@ -236,7 +236,7 @@ PowerShell 7 会作为后续脚本的推荐运行环境，更稳定、功能也�
 
 #### 6.3 为 Claude 配置 Context7 MCP（可选）
 
-Context7 MCP 可以为 Claude 提供更强的代码理解、项目上下文检索等能力。
+Context7 MCP 的作用，是让 Claude 在写代码时可以实时查询「最新、指定版本」的库 / 框架文档，而不是靠模型自己“猜”接口签名，从而减少因为抄到旧版本示例或用错 API 带来的问题。
 
 在 `components\claude-code-cli` 目录下双击：
 
@@ -291,11 +291,13 @@ Tavily MCP 可以让 Claude 具备联网搜索等能力。使用前需要先在 
 
 #### 7.3 为 Codex 配置 Context7 MCP（可选）
 
+> 说明：在 Codex CLI 中，本项目统一使用 `bunx` 来启动 MCP 服务器，而不是官方示例中常见的 `npx`，主要原因是当前「`npx` + Codex CLI」组合在一些环境下不够稳定；推荐先安装 Bun，并用 `bunx` 作为 Codex 的 MCP 启动方式。
+
 在 Codex 中启用 Context7 MCP：
 
 - 双击：`components\codex-cli\config-context7-mcp.bat`  
   - 脚本会使用 Bun 安装/更新 `@upstash/context7-mcp`，并在 Codex 的 `config.toml` 中写入 `[mcp_servers.context7]`（或类似）配置，使用 `bunx @upstash/context7-mcp@latest` 启动 MCP 服务器。  
-  - 这样，在 `codex` 中就可以直接使用 Context7 作为 MCP 工具源，用于项目上下文检索等任务，无需单独安装 `components\context7-mcp` 组件。  
+  - 这样，在 `codex` 中就可以直接使用 Context7 作为 MCP 工具源，按需查询最新、指定版本的库 / 框架文档，减少因为接口变更或示例过旧导致的报错，无需单独安装 `components\context7-mcp` 组件。  
 
 如果你主要使用 Tavily 或不需要 Context7，暂时可以跳过这一步。
 
@@ -315,12 +317,11 @@ Tavily MCP 可以让 Claude 具备联网搜索等能力。使用前需要先在 
 
 ### 手动安装第 8 步：安装 MCP / 文本处理插件
 
-最后，再安装两个常用扩展组件：
+最后，再安装一个常用扩展组件：
 
-1. 「项目目录」下的 `components\context7-mcp\install-comp.bat`  
-   - 为 Codex / 其他 MCP 客户端准备 Context7 相关的 MCP 服务器。  
-2. 「项目目录」下的 `components\markitdown\install-comp.bat`  
+1. 「项目目录」下的 `components\markitdown\install-comp.bat`  
    - 安装 MarkItDown，用于更好地处理和转换 Markdown 内容。  
+   - Context7 则是通过前面提到的 `config-context7-mcp.bat` / `config-context7-mcp.ps1` 自动安装和配置的，不需要单独的 `components\context7-mcp` 目录。  
 
 到这里，一个完整的「懒人 AI 开发环境」就搭建完成了。
 
