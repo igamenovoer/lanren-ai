@@ -5,14 +5,15 @@ Installs the Tavily MCP server and configures it for Codex CLI.
 .DESCRIPTION
 This script:
 
-- Ensures Node.js, npm, and Codex CLI (`codex`) are available.
-- Installs the Tavily MCP server globally via npm (`npm install -g tavily-mcp`).
+- Ensures Bun (`bun`), Node.js, and Codex CLI (`codex`) are available.
+- Installs the Tavily MCP server globally via Bun (`bun add -g tavily-mcp`).
 - Prompts for a Tavily API key (or lets you reuse TAVILY_API_KEY from the environment).
 - Updates `config.toml` under CODEX_HOME (default `%USERPROFILE%\.codex`) to define
-  an MCP server entry:
+  an MCP server entry that uses `bunx`:
 
     [mcp_servers.tavily]
-    command = "tavily-mcp"
+    command = "bunx"
+    args = ["tavily-mcp@latest"]
     env = { TAVILY_API_KEY = "..." }
 
 .PARAMETER ApiKey
@@ -74,18 +75,22 @@ try {
         Exit-WithWait 1
     }
 
-    Write-Info "Checking npm..."
+    Write-Info "Checking Bun (bun)..."
     try {
-        $npmVersion = npm --version 2>$null
-        if ($LASTEXITCODE -eq 0 -and $npmVersion) {
-            Write-Info "npm found: v$npmVersion"
+        $bunCmd = Get-Command bun -ErrorAction SilentlyContinue
+        if ($bunCmd) {
+            $bunVersion = bun --version 2>$null
+            if ($LASTEXITCODE -eq 0 -and $bunVersion) {
+                Write-Info "Bun found: $bunVersion"
+            } else {
+                Write-Info "Bun is available on PATH."
+            }
         } else {
-            throw "npm command failed."
+            throw "bun command not found."
         }
     } catch {
-        Write-Err "npm is not available on PATH."
-        Write-Host "npm should be installed together with Node.js."
-        Write-Host "Reinstall Node.js and then re-run this script."
+        Write-Err "Bun ('bun') is not available on PATH."
+        Write-Host "Install Bun first (for example via components/bun/install-comp), then re-run this script."
         Exit-WithWait 1
     }
 
@@ -134,17 +139,25 @@ try {
     }
 
     Write-Host ""
-    Write-Info "Installing Tavily MCP server globally via npm..."
+    Write-Info "Installing Tavily MCP server globally via Bun..."
 
     $packageName = "tavily-mcp"
-    $installArgs = @("install", "-g", $packageName)
-    Write-Info "Running: npm $($installArgs -join ' ')"
+    $installArgs = @("add", "-g", $packageName)
+    Write-Info "Running: bun $($installArgs -join ' ')"
 
-    & npm @installArgs
+    & bun @installArgs
     $installExit = $LASTEXITCODE
     if ($installExit -ne 0) {
-        Write-Err "npm failed to install $packageName (exit code $installExit)."
+        Write-Err "bun failed to install $packageName (exit code $installExit)."
         Exit-WithWait 1
+    }
+
+    $bunxCmd = Get-Command "bunx" -ErrorAction SilentlyContinue
+    if ($bunxCmd) {
+        Write-Info "bunx command is available on PATH: $($bunxCmd.Source)"
+    } else {
+        Write-Warn "bunx command not found on PATH."
+        Write-Warn "Codex will attempt to use 'bunx' to start the Tavily MCP server; ensure Bun is installed correctly."
     }
 
     $tavilyCmd = Get-Command "tavily-mcp" -ErrorAction SilentlyContinue
@@ -152,7 +165,7 @@ try {
         Write-Info "tavily-mcp command is available on PATH: $($tavilyCmd.Source)"
     } else {
         Write-Warn "tavily-mcp command not found on PATH after global install."
-        Write-Warn "Codex may not be able to start the MCP server unless your global npm bin directory is on PATH."
+        Write-Warn "bunx tavily-mcp@latest should still work if Bun is installed correctly."
     }
 
     $userHome = $env:USERPROFILE
@@ -200,7 +213,8 @@ try {
     $serverLines = @()
     $serverLines += ""
     $serverLines += "[mcp_servers.tavily]"
-    $serverLines += 'command = "tavily-mcp"'
+    $serverLines += 'command = "bunx"'
+    $serverLines += 'args = ["tavily-mcp@latest"]'
     $serverLines += "env = { TAVILY_API_KEY = `"$ApiKey`" }"
     $serverLines += ""
 
@@ -223,4 +237,3 @@ catch {
     Write-Err "config-tavily-mcp.ps1 failed: $($_.Exception.Message)"
     Exit-WithWait 1
 }
-

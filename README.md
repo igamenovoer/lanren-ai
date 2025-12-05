@@ -1,22 +1,299 @@
-# Lanren AI (懒人 AI)
+# 懒人 AI 开发环境（Lanren AI）
 
-**One-click AI development environment setup for Windows.**
+懒人 AI 是一个面向 **Windows 零基础用户** 的脚本集合，帮你只靠「双击 `.bat` 文件」就搭好一套可用的 AI 开发环境，包括：
 
-Lanren AI (懒人 AI) aims to make AI-powered coding tools accessible to everyone by offering simple, one-click installers that set up a complete development environment without requiring command-line knowledge.
+- 基础命令行工具（Git、jq、yq 等）
+- 开发环境（Python / Node.js 及相关包管理器）
+- AI 编码助手：**Claude Code CLI** 和 **OpenAI Codex CLI**
+- 一些基于 MCP 的扩展工具（如 Context7、Tavily、MarkItDown）
 
-## Project Goal
+你不需要会编程，也不需要会用 git 或命令行，只要按照下面的步骤一点点双击脚本即可。
 
-- Provide easy, one-click installers for popular AI coding tools and supporting utilities.
-- Remove friction for new developers by handling installation, configuration, and basic integration automatically.
-- Offer opinionated, ready-to-use setups that help people start using AI coding tools in minutes instead of hours.
+---
 
-## Who This Is For
+## 一、如何从 GitHub 下载本项目（不会用 git 也没关系）
 
-- Developers new to AI coding tools.
-- People who prefer double-click installers over manual setup.
-- Teams that want a standardized, repeatable AI development environment.
+1. 打开浏览器，访问本仓库的 GitHub 页面：  
+   `https://github.com/igamenovoer/lanren-ai`
+2. 在页面右上方、文件列表上方，找到一个绿色的按钮：**Code**，点击它。  
+3. 在弹出的菜单里，点击：**Download ZIP**。  
+   - 浏览器会开始下载一个压缩包，例如：`lanren-ai-main.zip`。
+4. 下载完成后：  
+   - 可以在浏览器下载栏中点击「在文件夹中显示」，  
+   - 或者打开资源管理器，在「下载」文件夹里找到这个 `.zip` 文件。
+5. 右键这个 `lanren-ai-main.zip` 文件，选择：**全部提取...（Extract All）**。  
+6. 在弹出的对话框中，选择一个你想放项目的目录，比如：  
+   - 在 `D:` 盘下面新建一个文件夹 `D:\code`（如果没有就自己建一个），  
+   - 然后把解压路径设置为：`D:\code\lanren-ai`。  
+7. 解压完成后，确认在 `D:\code\lanren-ai` 下面能看到类似 `components`、`scripts` 等子目录。  
 
-## Project Status
+> 下面所有说明都假设你的根路径是：`D:\code\lanren-ai`。  
+> 如果你解压到别的位置，后面的路径中把 `D:\code\lanren-ai` 换成你自己的路径即可。
 
-This project is under active development. The initial focus is on a “common tools” pack that installs a practical baseline environment for AI-assisted coding on Windows.
+---
 
+## 二、安装方式总览：一键安装 vs 手动安装
+
+你有两种安装方式：
+
+- **一键安装**：在项目根目录直接双击 `install-everything.bat`，脚本会按推荐顺序自动调用各组件的安装脚本，尽量一次性完成全部环境搭建。  
+- **手动安装**：按照下面的「五、手动安装」章节，从第 1 步到第 8 步，进入每个 `components\...\` 目录，手动双击对应的 `.bat` 文件。
+
+需要特别说明的是：
+
+- 每台电脑的 **Windows 版本、已安装软件、网络环境** 都可能不同，一键安装脚本在某些机器上可能会在中途某一步失败。  
+- 如果一键安装过程中出现错误提示，或者黑窗口一闪而过你没看清楚，**不要紧张**，可以改用「手动安装」方式，一步一步来。  
+- 大部分安装脚本都尽量设计为 **幂等** 的，也就是多运行几次一般不会破坏已有环境。  
+
+推荐顺序：
+
+1. **优先尝试一键安装**（简单、省心）；  
+2. 如果中途出现问题，再回到 README，按「手动安装」章节一项一项地补装或重装。  
+
+---
+
+## 三、一键安装（推荐先尝试）
+
+一键安装脚本位于项目根目录：
+
+- 路径：`D:\code\lanren-ai\install-everything.bat`
+
+使用方法：
+
+1. 打开资源管理器，进入 `D:\code\lanren-ai`（或者你实际解压到的目录）。  
+2. 找到 `install-everything.bat`，**双击运行**。  
+3. 黑色命令行窗口会弹出，脚本会依次执行这些操作：  
+   - 调整当前用户的 PowerShell 脚本执行权限（调用同目录下的 `enable-ps1-permission.bat`）；  
+   - 安装 / 检查：winget、PowerShell 7、VS Code；  
+   - 安装常用命令行工具：jq、yq、Git；  
+   - 安装开发基础工具：uv、pixi、Node.js、Bun、aria2；  
+   - 安装 AI 相关组件：Claude Code CLI、Codex CLI、Context7 MCP、MarkItDown。  
+4. 如果某个子步骤执行失败，窗口中会出现类似：  
+   - `[WARN] Step script exited with error code: ...`  
+   - 同时会显示是哪一个 `components\...\install-comp.bat` 出错。  
+   这时你可以：  
+   - 记住提示中提到的路径和描述；  
+   - 按提示按任意键继续，让脚本尝试后面的步骤；  
+   - 安装结束后，再按照「手动安装」章节，单独进入对应目录重新运行该 `.bat`。  
+
+重要提醒：
+
+- 由于安装内容较多，且依赖网络和系统环境，一键安装 **可能在某一步失败或出错**，这是正常情况。  
+  - 如果你对报错信息看不懂，或者脚本行为让你不放心，可以直接关闭窗口，改用「手动安装」一项一项来，会更容易定位问题。  
+- 一键脚本本身不会做特别危险的操作，只是按顺序调用各组件目录里的 `.bat` 安装脚本；这些脚本大多数都可以安全地重复执行。  
+- 其中「winget」这一步，在 **Windows 11 或较新的 Windows 10（例如 22H2 及之后版本）** 上通常已经不需要了：  
+  - 如果系统已经自带 `winget`，对应的 PowerShell 脚本会自动检测并跳过，不会重复安装。  
+
+如果一键安装执行完后仍有某些组件缺失，请按下一节的「手动安装」说明进行补装。  
+
+---
+
+## 四、手动安装（适合一步一步确认的用户）
+
+如果你不想使用一键安装，或者一键安装过程中某一步失败，可以按照下面的步骤 **手动安装**。  
+每一步的基本操作都类似：
+
+> 进入对应的 `components\子目录` → 双击本目录下的 `.bat` 文件 → 等脚本跑完 → 关闭窗口。
+
+下面的说明都按推荐顺序列出，你也可以根据自己需求跳过不需要的组件。
+
+---
+
+### 手动安装第 1 步：检查 / 安装 winget（Windows 包管理器）
+
+1. 打开资源管理器，进入：`D:\code\lanren-ai\components\winget`  
+2. 双击：`install-comp.bat`  
+3. 等待窗口执行完毕，看到“已安装 / 已存在”之类提示后关闭窗口。
+
+说明：
+
+- Windows 11 和较新的 Windows 10（例如 22H2 及以后版本）通常已经自带 `winget`。  
+- 即使已经安装过，脚本也会先检查系统是否有 `winget`，如果有就直接跳过，不会重复安装或破坏现有环境。  
+- 如果你已经确认命令行里能运行 `winget`，这一步可以跳过，但运行一次也没有坏处。  
+
+---
+
+### 手动安装第 2 步：安装 PowerShell 7
+
+1. 进入：`D:\code\lanren-ai\components\powershell-7`  
+2. 双击：`install-comp.bat`  
+3. 安装完成后，建议重启一次 PowerShell 或电脑。
+
+PowerShell 7 会作为后续脚本的推荐运行环境，更稳定、功能也更完整。
+
+---
+
+### 手动安装第 3 步：安装 VS Code（代码编辑器）
+
+1. 进入：`D:\code\lanren-ai\components\vscode`  
+2. 双击：`install-vscode-app.bat`，安装 VS Code 软件本体。  
+3. 安装完成并确认 VS Code 能正常打开后，再双击：`install-extensions.bat`，自动安装推荐插件：  
+   - Python 扩展  
+   - Git 扩展  
+   - Markdown Preview Enhanced  
+   - Rainbow CSV  
+   - Excel Viewer  
+   - OpenAI Codex 插件  
+   - Claude Code 插件  
+   - Cline 等辅助插件  
+
+---
+
+### 手动安装第 4 步：安装常用命令行小工具
+
+依次进入下面三个目录，每个目录里双击一次 `install-comp.bat`：
+
+1. `D:\code\lanren-ai\components\jq\install-comp.bat`（安装 JSON 处理工具 `jq`）  
+2. `D:\code\lanren-ai\components\yq\install-comp.bat`（安装 YAML 处理工具 `yq`）  
+3. `D:\code\lanren-ai\components\git\install-comp.bat`（安装 Git 版本控制）  
+
+每个脚本执行完之后可以直接关闭窗口，再进行下一步。
+
+---
+
+### 手动安装第 5 步：安装开发基础工具（Python / Conda / Node.js 等）
+
+依然是「进入目录 → 双击 `.bat`」的方式，推荐安装顺序如下：
+
+1. `D:\code\lanren-ai\components\uv\install-comp.bat`  
+   - 安装 Python 相关的现代包管理 / 运行工具。  
+2. `D:\code\lanren-ai\components\pixi\install-comp.bat`  
+   - 安装基于 Conda 的环境管理工具。  
+3. `D:\code\lanren-ai\components\nodejs\install-comp.bat`  
+   - 安装 Node.js 与 npm。  
+4. `D:\code\lanren-ai\components\bun\install-comp.bat`  
+   - 安装 Bun（快速的 JS 运行时和包管理器），后续为 Tavily MCP 配置时会用到。  
+5. `D:\code\lanren-ai\components\aria2\install-comp.bat`（可选但推荐）  
+   - 安装 aria2 下载工具，用于某些脚本的加速下载。  
+
+如果中间有步骤失败，可以稍后重试；大部分脚本都可以安全地重复执行。
+
+---
+
+### 手动安装第 6 步：安装 Claude Code CLI，并可选配置 Tavily / 自定义 API
+
+#### 6.1 安装 Claude Code CLI
+
+1. 进入：`D:\code\lanren-ai\components\claude-code-cli`  
+2. 双击：`install-comp.bat`  
+3. 等待安装完成，窗口提示成功后关闭。  
+
+#### 6.2 配置登录相关和自定义 API 入口
+
+在 `components\claude-code-cli` 目录下，你可以按需双击这些配置脚本：
+
+- `config-skip-login.bat`  
+  - 作用：让 Claude Code CLI 跳过第一次启动时的登录 / Onboarding 流程，省去「扫码 / 网页登录」这一步。  
+
+- `config-custom-api-key.bat`  
+  - 作用：  
+    - 在 PowerShell 中创建一个别名命令，例如 `claude-kimi`。  
+    - 以后在 PowerShell 里输入 `claude-kimi`，脚本会自动设置好自定义 Endpoint 和 API Key，并以此启动 `claude`。  
+  - 如果你在寻找第三方兼容 Claude / OpenAI 的代理或网关，可以参考这个收集仓库：  
+    - <https://github.com/mn-api/awesome-ai-proxy>  
+    - 里面列出了很多第三方 API 提供商，你可以从中挑选一个支持 Claude / OpenAI 的服务，按照对方文档拿到「接口地址（Base URL）」和「API Key」，再填进本脚本提示即可。  
+
+#### 6.3 为 Claude 配置 Tavily MCP（可选）
+
+Tavily MCP 可以让 Claude 具备联网搜索等能力。使用前需要先在 Tavily 官网申请一个 API Key：
+
+1. 打开浏览器访问：<https://app.tavily.com/home>  
+2. 注册或登录 Tavily 账号。  
+3. 在控制台（Dashboard）中找到 API Keys 相关页面，创建并复制一个新的 Key。  
+
+然后在 `components\claude-code-cli` 目录下双击：
+
+- `config-tavily-mcp.bat`  
+  - 运行过程中脚本会提示你输入 Tavily API Key，把刚刚复制的那一串粘贴进去即可。  
+  - 脚本会自动完成 Tavily MCP 的安装与在 Claude Code 中的注册。  
+
+如果你暂时不需要联网搜索，可以先跳过这一步。
+
+---
+
+### 手动安装第 7 步：安装 OpenAI Codex CLI，并配置 Tavily / 自定义 API
+
+#### 7.1 安装 Codex CLI
+
+1. 进入：`D:\code\lanren-ai\components\codex-cli`  
+2. 双击：`install-comp.bat`  
+3. 等待脚本提示安装成功后关闭窗口。  
+
+#### 7.2 配置 Codex 登录与自定义 OpenAI 兼容 API
+
+在同一目录下，你可以按需双击这些脚本：
+
+- `config-skip-login.bat`  
+  - 作用：修改 `~/.codex/config.toml`，让 Codex 优先使用环境变量 `OPENAI_API_KEY`，并关闭启动时的交互式登录界面。  
+
+- `config-custom-api-key.bat`  
+  - 作用：  
+    - 在 PowerShell 中创建一个类似 `codex-openai-proxy` 的命令别名。  
+    - 这个别名会自动设置 `OPENAI_BASE_URL` 和 `OPENAI_API_KEY`，然后启动 `codex`。  
+    - 同时更新 Codex 的 `config.toml`，为 `openai` 提供自定义的 base_url / env_key，并关闭 `requires_openai_auth`。  
+  - 如果你希望使用第三方 OpenAI 兼容代理（比如国内加速或自建代理），也可以参考：  
+    - <https://github.com/mn-api/awesome-ai-proxy>  
+    - 在该列表中挑选一个支持 OpenAI 协议的服务，按对方文档拿到接口地址和 API Key，再在本脚本的提示中填入即可。  
+
+#### 7.3 为 Codex 配置 Tavily MCP（可选）
+
+- 双击：`components\codex-cli\config-tavily-mcp.bat`  
+  - 脚本会使用 Bun 安装 Tavily MCP，并在 Codex 的 `config.toml` 中写入 `[mcp_servers.tavily]` 配置，使用 `bunx tavily-mcp@latest` 启动 MCP 服务器。  
+  - 同样需要 Tavily API Key，获取方式与第 6 步相同：  
+    1. 打开 <https://app.tavily.com/home> 并登录。  
+    2. 在 Tavily 控制台中创建并复制一个 API Key。  
+    3. 运行 `config-tavily-mcp.bat` 时按提示粘贴该 Key。  
+
+如果你只想先简单体验 Codex CLI，本步可以只运行 `install-comp.bat` 和 `config-skip-login.bat`。
+
+---
+
+### 手动安装第 8 步：安装 MCP / 文本处理插件
+
+最后，再安装两个常用扩展组件：
+
+1. `D:\code\lanren-ai\components\context7-mcp\install-comp.bat`  
+   - 为 Codex / 其他 MCP 客户端准备 Context7 相关的 MCP 服务器。  
+2. `D:\code\lanren-ai\components\markitdown\install-comp.bat`  
+   - 安装 MarkItDown，用于更好地处理和转换 Markdown 内容。  
+
+到这里，一个完整的「懒人 AI 开发环境」就搭建完成了。
+
+---
+
+## 五、使用流程小结
+
+1. 按「一、如何从 GitHub 下载本项目」中的说明，先下载并解压仓库到本地（例如 `D:\code\lanren-ai`）。  
+2. 选择安装方式：  
+   - **方式 A：一键安装（推荐先尝试）**  
+     - 在项目根目录双击 `install-everything.bat`。  
+     - 如果所有步骤都顺利完成，那你可以跳过下面的手动安装章节。  
+     - 如果脚本中途报错或某些步骤失败，请记住提示中出现的 `components\...\` 路径，然后参考「四、手动安装」章节，对应步骤进行人工重试。  
+   - **方式 B：手动安装（更稳定、可控）**  
+     - 按照「四、手动安装」中第 1 步到第 8 步的顺序，依次进入各个 `components\...\` 目录，双击对应的 `.bat` 文件。  
+     - 可以按需跳过你不需要的组件（例如暂时不用 Codex / 某些 MCP），只装你想要的部分。  
+3. 安装完成后：  
+   - 打开 VS Code，确认推荐插件已安装。  
+   - 打开 PowerShell 7 终端，尝试运行：`claude`、`codex`，以及你在 `config-custom-api-key` 中配置的别名命令。  
+   - 如需联网搜索或使用 Tavily 相关功能，在运行 Tavily 配置脚本时输入 / 粘贴你的 Tavily API Key。  
+
+---
+
+## 六、注意事项
+
+- 大多数脚本都尽量设计成 **幂等** 的：多运行几次，一般不会破坏原有配置；但在修改前备份重要配置文件始终是好习惯。  
+- 某些安装过程依赖外网（npm、Bun 下载、MCP 服务等），如果你在中国大陆使用，建议配置好代理或者使用镜像源。  
+- 如果你对某个组件暂时不需要，可以跳过对应步骤；README 中的顺序只是一个对新手比较友好的推荐路径。  
+- 如果你多次重试某个步骤仍然失败，或者错误信息看不懂，可以把问题反馈到本项目的 GitHub：  
+  1. 打开浏览器访问：`https://github.com/igamenovoer/lanren-ai`  
+  2. 点击页面上方的 **Issues** 选项卡，再点击右侧绿色的 **New issue** 按钮。  
+  3. 在标题中简单写明「哪一步出错」（例如：`Step 6 Claude Code install failed`）。  
+  4. 在内容中说明：你的 Windows 版本、你是通过一键安装还是手动安装、出错的是哪一步，以及大致的报错文字。  
+  5. 在 Issue 里尽量上传两样东西：  
+     - **出错时黑色命令行窗口的截图**（把整个窗口一起截进去）。  
+     - **相关的日志文件**：所有组件安装与配置脚本都会把详细日志写到当前工作目录下的 `lanren-cache` 目录，例如：  
+       - `D:\code\lanren-ai\lanren-cache\logs\...`  
+       请在 `lanren-cache\logs` 下面找到最近生成的 `.log` 文件（文件名里通常包含组件名和时间戳），把它一并作为附件上传。  
+  这些信息可以帮助作者更快定位问题，给出针对性的解决方案。  
+
+欢迎你根据自己的习惯在本地继续扩展这些脚本，打造属于你自己的「懒人 AI 开发环境」。
