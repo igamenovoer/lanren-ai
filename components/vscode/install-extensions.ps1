@@ -144,10 +144,39 @@ function Test-ToolOnPath {
     return [bool]$cmd
 }
 
+function Get-CodeCliPath {
+    $codeCmd = Get-Command code -ErrorAction SilentlyContinue
+    if ($codeCmd) {
+        return $codeCmd.Path
+    }
+
+    $candidates = @()
+    if ($env:LOCALAPPDATA) {
+        $candidates += (Join-Path $env:LOCALAPPDATA 'Programs\Microsoft VS Code\bin\code.cmd')
+    }
+    if ($env:ProgramFiles) {
+        $candidates += (Join-Path $env:ProgramFiles 'Microsoft VS Code\bin\code.cmd')
+    }
+    if (${env:ProgramFiles(x86)}) {
+        $candidates += (Join-Path ${env:ProgramFiles(x86)} 'Microsoft VS Code\bin\code.cmd')
+    }
+
+    foreach ($candidate in $candidates) {
+        if (Test-Path $candidate) {
+            return $candidate
+        }
+    }
+
+    return $null
+}
+
 try {
-    if (-not (Test-ToolOnPath -CommandName "code")) {
-        Write-OutputLine -Content "VS Code CLI 'code' not found on PATH. Skipping extension installation." -LogFile $CaptureLogFile
+    $codePath = Get-CodeCliPath
+    if (-not $codePath) {
+        Write-OutputLine -Content "VS Code CLI 'code' not found on PATH or in common install locations. Skipping extension installation." -LogFile $CaptureLogFile
         Exit-WithWait 0
+    } else {
+        Write-OutputLine -Content "Using VS Code CLI at: $codePath" -LogFile $CaptureLogFile
     }
 
     $extensions = @(
@@ -173,7 +202,7 @@ try {
         try {
             Write-OutputLine -Content "Installing VS Code extension: $ext" -LogFile $CaptureLogFile
             # Capture output to show progress
-            $output = code --install-extension $ext --force 2>&1
+            $output = & $codePath --install-extension $ext --force 2>&1
             if ($output) {
                 $outStr = $output | Out-String -Stream
                 Write-OutputLine -Content $outStr -LogFile $CaptureLogFile
