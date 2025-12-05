@@ -244,7 +244,7 @@ Context7 MCP 的作用，是让 Claude 在写代码时可以实时查询「最�
   - 作用：为当前用户安装/更新 Context7 MCP 服务器（基于 `@upstash/context7-mcp` 等实现），并在 Claude Code 的配置中注册名为 `context7` 的 MCP 服务器。  
   - 脚本会调用 `npm` / `claude mcp add` 等命令，写入合适的 MCP 配置，让 `claude` 可以直接调用 Context7 提供的工具，无需单独运行其他安装脚本。  
 
-如果你暂时不需要更高级的上下文管理，可以先跳过这一步。
+如果你暂时不需要在线文档查询，可以先跳过这一步。
 
 #### 6.4 为 Claude 配置 Tavily MCP（可选）
 
@@ -299,7 +299,7 @@ Tavily MCP 可以让 Claude 具备联网搜索等能力。使用前需要先在 
   - 脚本会使用 Bun 安装/更新 `@upstash/context7-mcp`，并在 Codex 的 `config.toml` 中写入 `[mcp_servers.context7]`（或类似）配置，使用 `bunx @upstash/context7-mcp@latest` 启动 MCP 服务器。  
   - 这样，在 `codex` 中就可以直接使用 Context7 作为 MCP 工具源，按需查询最新、指定版本的库 / 框架文档，减少因为接口变更或示例过旧导致的报错，无需单独安装 `components\context7-mcp` 组件。  
 
-如果你主要使用 Tavily 或不需要 Context7，暂时可以跳过这一步。
+如果你暂时不需要在线文档查询，可以先跳过这一步。
 
 #### 7.4 为 Codex 配置 Tavily MCP（可选）
 
