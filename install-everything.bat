@@ -89,8 +89,10 @@ call :run_step "%ROOT%components\bun\install-comp.bat"           "Install Bun (J
 call :run_step "%ROOT%components\aria2\install-comp.bat"         "Install aria2 (download helper, optional)"
 
 :: 5. Install AI CLIs and MCP-related components
-call :run_step "%ROOT%components\claude-code-cli\install-comp.bat" "Install Claude Code CLI"
-call :run_step "%ROOT%components\codex-cli\install-comp.bat"       "Install OpenAI Codex CLI"
+call :run_step "%ROOT%components\claude-code-cli\install-comp.bat"   "Install Claude Code CLI"
+call :run_step "%ROOT%components\codex-cli\install-comp.bat"         "Install OpenAI Codex CLI"
+call :run_step "%ROOT%components\claude-code-cli\config-skip-login.bat" "Configure Claude Code CLI to skip login"
+call :run_step "%ROOT%components\codex-cli\config-skip-login.bat"       "Configure Codex CLI to skip login"
 call :run_step "%ROOT%components\context7-mcp\install-comp.bat"    "Install Context7 MCP"
 call :run_step "%ROOT%components\markitdown\install-comp.bat"      "Install MarkItDown"
 

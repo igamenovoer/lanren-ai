@@ -81,14 +81,15 @@
    - 安装 / 检查：winget、PowerShell 7、VS Code；  
    - 安装常用命令行工具：jq、yq、Git；  
    - 安装开发基础工具：uv、pixi、Node.js、Bun、aria2；  
-   - 安装 AI 相关组件：Claude Code CLI、Codex CLI、Context7 MCP、MarkItDown。  
+   - 安装 AI 相关组件：Claude Code CLI、Codex CLI、Context7 MCP、MarkItDown；  
+   - 自动为 **Claude Code CLI** 和 **Codex CLI** 各运行一次 `config-skip-login.bat`，让它们默认跳过首启登录 / Onboarding 提示；  
+   - **不会自动运行其他 `config-*.bat` 脚本**（例如 Tavily MCP 配置、自定义 API Key / 代理等），这些属于「可选配置」，需要你在安装完后进入对应 `components\...\` 目录按需双击执行。  
 4. 如果某个子步骤执行失败，窗口中会出现类似：  
    - `[WARN] Step script exited with error code: ...`  
-   - 同时会显示是哪一个 `components\...\install-comp.bat` 出错。  
-   这时你可以：  
-   - 记住提示中提到的路径和描述；  
-   - 按提示按任意键继续，让脚本尝试后面的步骤；  
-   - 安装结束后，再按照「手动安装」章节，单独进入对应目录重新运行该 `.bat`。  
+   - 同时会显示是哪一个 `components\...\install-comp.bat`（或 `config-*.bat`）出错。  
+   脚本不会在这里中断，而是继续尝试后面的安装步骤；安装结束后，你可以：  
+   - 在窗口中向上滚动，找到失败步骤对应的组件路径和描述；  
+   - 按照「手动安装」章节，进入对应 `components\...\` 目录，单独重新运行那个 `.bat`。  
 
 重要提醒：
 
