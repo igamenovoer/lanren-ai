@@ -147,7 +147,7 @@ function Test-ToolOnPath {
 try {
     if (-not (Test-ToolOnPath -CommandName "code")) {
         Write-OutputLine -Content "VS Code CLI 'code' not found on PATH. Skipping extension installation." -LogFile $CaptureLogFile
-        Exit-WithWait 1
+        Exit-WithWait 0
     }
 
     $extensions = @(
