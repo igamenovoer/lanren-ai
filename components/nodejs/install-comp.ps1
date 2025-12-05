@@ -150,6 +150,8 @@ function Write-OutputLine {
     }
 }
 
+$installSucceeded = $false
+
 function Test-ToolOnPath {
     param(
         [string]$CommandName
@@ -165,34 +167,35 @@ try {
         $lines += "Node.js is already available on PATH (node command found). Use -Force to reinstall."
         $lines += "No installation performed."
         Write-OutputLine -Content $lines -LogFile $CaptureLogFile
-    }
-
-    if ($Proxy) {
-        $env:HTTP_PROXY = $Proxy
-        $env:HTTPS_PROXY = $Proxy
-        $lines += "Using proxy for winget/network: $Proxy"
-    }
-
-    $wingetCmd = Get-Command winget -ErrorAction SilentlyContinue
-    if ($wingetCmd) {
-        $nodeLtsId = "OpenJS.NodeJS.LTS"
-        $wingetArgs = @("install","-e","--id",$nodeLtsId)
-        if ($AcceptDefaults) {
-            $wingetArgs += @("--accept-source-agreements","--accept-package-agreements")
-        }
-
-        $lines += "Running: winget $($wingetArgs -join ' ')"
-        & winget @wingetArgs
-        $exitCode = $LASTEXITCODE
-
-        if ($exitCode -eq 0 -and (Test-ToolOnPath -CommandName "node")) {
-            $lines += "Node.js (LTS) installed successfully via winget (id=$nodeLtsId)."
-            Write-OutputLine -Content $lines -LogFile $CaptureLogFile
-        }
-
-        $lines += "winget install for Node.js (LTS) did not complete successfully (exit code $exitCode)."
+        $installSucceeded = $true
     } else {
-        $lines += "winget is not available; cannot perform automatic Node.js installation."
+        if ($Proxy) {
+            $env:HTTP_PROXY = $Proxy
+            $env:HTTPS_PROXY = $Proxy
+            $lines += "Using proxy for winget/network: $Proxy"
+        }
+
+        $wingetCmd = Get-Command winget -ErrorAction SilentlyContinue
+        if ($wingetCmd) {
+            $nodeLtsId = "OpenJS.NodeJS.LTS"
+            $wingetArgs = @("install","-e","--id",$nodeLtsId)
+            if ($AcceptDefaults) {
+                $wingetArgs += @("--accept-source-agreements","--accept-package-agreements")
+            }
+
+            $lines += "Running: winget $($wingetArgs -join ' ')"
+            & winget @wingetArgs
+            $exitCode = $LASTEXITCODE
+
+            if ($exitCode -eq 0 -and (Test-ToolOnPath -CommandName "node")) {
+                $lines += "Node.js (LTS) installed successfully via winget (id=$nodeLtsId)."
+                $installSucceeded = $true
+            } else {
+                $lines += "winget install for Node.js (LTS) did not complete successfully (exit code $exitCode)."
+            }
+        } else {
+            $lines += "winget is not available; cannot perform automatic Node.js installation."
+        }
     }
 
     $lines += ""
@@ -212,10 +215,8 @@ try {
 }
 
 Write-OutputLine -Content $lines -LogFile $CaptureLogFile
-Exit-WithWait 1
-if ($NoExit) {
-    Write-Host "Press any key to exit..."
-    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+if ($installSucceeded) {
+    Exit-WithWait 0
+} else {
+    Exit-WithWait 1
 }
-
-Exit-WithWait 0

@@ -68,12 +68,9 @@ if ($menuExit -ne 0) {
 }
 
 & $extScript -CaptureLogFile $CaptureLogFile
-exit $LASTEXITCODE
-
-
-if ($NoExit) {
-    Write-Host "Press any key to exit..."
-    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+if ($LASTEXITCODE -ne 0) {
+    Exit-WithWait $LASTEXITCODE
 }
+
 
 Exit-WithWait 0

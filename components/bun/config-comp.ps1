@@ -96,9 +96,4 @@ $content | Out-File -FilePath $bunfigPath -Encoding utf8 -Force
 Write-Output "Configuration complete."
 
 
-if ($NoExit) {
-    Write-Host "Press any key to exit..."
-    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
-}
-
 Exit-WithWait 0

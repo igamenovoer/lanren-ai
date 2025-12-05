@@ -151,6 +151,8 @@ function Write-OutputLine {
     }
 }
 
+$installSucceeded = $false
+
 function Test-ToolOnPath {
     param(
         [string]$CommandName
@@ -166,33 +168,34 @@ try {
         $lines += "aria2 is already available on PATH (aria2c command found). Use -Force to reinstall."
         $lines += "No installation performed."
         Write-OutputLine -Content $lines -LogFile $CaptureLogFile
-    }
-
-    if ($Proxy) {
-        $env:HTTP_PROXY = $Proxy
-        $env:HTTPS_PROXY = $Proxy
-        $lines += "Using proxy for winget/network: $Proxy"
-    }
-
-    $wingetCmd = Get-Command winget -ErrorAction SilentlyContinue
-    if ($wingetCmd) {
-        $wingetArgs = @("install","-e","--id","aria2.aria2")
-        if ($AcceptDefaults) {
-            $wingetArgs += @("--accept-source-agreements","--accept-package-agreements")
-        }
-
-        $lines += "Running: winget $($wingetArgs -join ' ')"
-        & winget @wingetArgs
-        $exitCode = $LASTEXITCODE
-
-        if ($exitCode -eq 0 -and (Test-ToolOnPath -CommandName "aria2c")) {
-            $lines += "aria2 installed successfully via winget."
-            Write-OutputLine -Content $lines -LogFile $CaptureLogFile
-        }
-
-        $lines += "winget install did not complete successfully (exit code $exitCode)."
+        $installSucceeded = $true
     } else {
-        $lines += "winget is not available; cannot perform automatic aria2 installation."
+        if ($Proxy) {
+            $env:HTTP_PROXY = $Proxy
+            $env:HTTPS_PROXY = $Proxy
+            $lines += "Using proxy for winget/network: $Proxy"
+        }
+
+        $wingetCmd = Get-Command winget -ErrorAction SilentlyContinue
+        if ($wingetCmd) {
+            $wingetArgs = @("install","-e","--id","aria2.aria2")
+            if ($AcceptDefaults) {
+                $wingetArgs += @("--accept-source-agreements","--accept-package-agreements")
+            }
+
+            $lines += "Running: winget $($wingetArgs -join ' ')"
+            & winget @wingetArgs
+            $exitCode = $LASTEXITCODE
+
+            if ($exitCode -eq 0 -and (Test-ToolOnPath -CommandName "aria2c")) {
+                $lines += "aria2 installed successfully via winget."
+                $installSucceeded = $true
+            } else {
+                $lines += "winget install did not complete successfully (exit code $exitCode)."
+            }
+        } else {
+            $lines += "winget is not available; cannot perform automatic aria2 installation."
+        }
     }
 
     $lines += ""
@@ -210,10 +213,8 @@ try {
 }
 
 Write-OutputLine -Content $lines -LogFile $CaptureLogFile
-Exit-WithWait 1
-if ($NoExit) {
-    Write-Host "Press any key to exit..."
-    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+if ($installSucceeded) {
+    Exit-WithWait 0
+} else {
+    Exit-WithWait 1
 }
-
-Exit-WithWait 0

@@ -72,6 +72,17 @@ function Write-OutputLine {
     }
 }
 
+function Write-OutputLines {
+    param(
+        [string[]]$Content,
+        [string]$LogFile
+    )
+
+
+
+    Write-OutputLine -Content $Content -LogFile $LogFile
+}
+
 function Start-AppInstallerAndWait {
     <#
     .SYNOPSIS
@@ -120,6 +131,8 @@ try {
     if ($wingetCmd -and -not $Force) {
         $lines += "winget is already available on this system. Use -Force to reinstall."
         Write-OutputLine -Content $lines -LogFile $CaptureLogFile
+        Write-OutputLine -Content @("winget already available; no installation required.") -LogFile $CaptureLogFile
+        Exit-WithWait 0
     }
 
     $lines += "winget is not available (or -Force used); attempting to install App Installer."
@@ -140,7 +153,7 @@ try {
         if (Test-Path $appInstallerPath) {
             $lines += "App Installer is already installed at: $($appInstaller.InstallLocation)"
             $lines += "However, the 'winget' command is not found. Proceeding to repair via re-installation..."
-            Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+            Write-OutputLine -Content $lines -LogFile $CaptureLogFile
         }
     }
 
@@ -159,7 +172,7 @@ try {
     if (-not $installed -and $foundFile) {
         $lines += "Found cached installer at: $foundFile"
         $lines += "Launching App Installer GUI... Please complete the installation in the popup window."
-        Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+        Write-OutputLine -Content $lines -LogFile $CaptureLogFile
         
         # Launch the installer GUI and wait for it to complete
         Start-AppInstallerAndWait -FilePath $foundFile -AcceptDefaults:$AcceptDefaults
@@ -171,7 +184,7 @@ try {
         } else {
             $lines += "Installation process finished, but winget command is not found."
             $lines += "If you cancelled the installation, you can run this script again."
-            Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+            Write-OutputLine -Content $lines -LogFile $CaptureLogFile
             Exit-WithWait 1
         }
     }
@@ -181,29 +194,24 @@ try {
         $lines += "Winget is not installed and no local installer (.msixbundle) was found in:"
         $lines += "  $cacheDir"
         $lines += "Please manually download the App Installer package and place it there."
-        Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+        Write-OutputLine -Content $lines -LogFile $CaptureLogFile
         Exit-WithWait 1
     }
 
     $wingetCmd = Get-Command winget -ErrorAction SilentlyContinue
     if ($wingetCmd) {
         $lines += "winget is now available."
-        Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+        Write-OutputLine -Content $lines -LogFile $CaptureLogFile
+        Exit-WithWait 0
     }
 
     $lines += "Installation completed but winget is still not available on PATH."
     $lines += "You may need to log out and log back in, then try again."
 } catch {
     $lines += "Error ensuring winget availability: $($_.Exception.Message)"
-    Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+    Write-OutputLine -Content $lines -LogFile $CaptureLogFile
     Exit-WithWait 1
 }
 
-Write-OutputLines -Content $lines -LogFile $CaptureLogFile
+Write-OutputLine -Content $lines -LogFile $CaptureLogFile
 Exit-WithWait 1
-if ($NoExit) {
-    Write-Host "Press any key to exit..."
-    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
-}
-
-Exit-WithWait 0

@@ -156,12 +156,15 @@ function Write-OutputLine {
     }
 }
 
+$installSucceeded = $false
+
 try {
     $codeCmd = Get-Command code -ErrorAction SilentlyContinue
     if ($codeCmd -and -not $Force) {
         $lines += "Visual Studio Code is already available on PATH (code command found). Use -Force to reinstall."
         $lines += "No installation performed by install-vscode-app.ps1."
         Write-OutputLine -Content $lines -LogFile $CaptureLogFile
+        Exit-WithWait 0
     }
 
     if ($Proxy) {
@@ -181,7 +184,7 @@ try {
             $wingetArgs += @("--accept-source-agreements","--accept-package-agreements")
         }
 
-        $override = '/VERYSILENT /SP- /MERGETASKS="addcontextmenufiles,addcontextmenufolders,associatewithfiles,addtopath"'
+        $override = '/VERYSILENT /SP- /MERGETASKS="!runcode,addcontextmenufiles,addcontextmenufolders,associatewithfiles,addtopath"'
         $wingetArgs += @("--override",$override)
 
         $lines += "Running: winget $($wingetArgs -join ' ')"
@@ -191,10 +194,10 @@ try {
         if ($exitCode -eq 0) {
             $lines += "VS Code installed successfully via winget."
             $lines += "Installer override requested Explorer context menus and PATH integration."
-            Write-OutputLine -Content $lines -LogFile $CaptureLogFile
+            $installSucceeded = $true
+        } else {
+            $lines += "winget install for VS Code did not complete successfully (exit code $exitCode)."
         }
-
-        $lines += "winget install for VS Code did not complete successfully (exit code $exitCode)."
     } else {
         $lines += "winget is not available; cannot perform automatic VS Code installation."
     }
@@ -215,10 +218,8 @@ try {
 }
 
 Write-OutputLine -Content $lines -LogFile $CaptureLogFile
-Exit-WithWait 1
-if ($NoExit) {
-    Write-Host "Press any key to exit..."
-    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+if ($installSucceeded) {
+    Exit-WithWait 0
+} else {
+    Exit-WithWait 1
 }
-
-Exit-WithWait 0

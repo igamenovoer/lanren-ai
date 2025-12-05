@@ -100,18 +100,14 @@ if ($CaptureLogFile) {
     $script:LanrenLogFiles += $CaptureLogFile
 }
 
-$lines = @()
-$lines += ""
-$lines += "=== Installing Visual Studio Code extensions ==="
-$lines += ""
-
 function Write-OutputLine {
     param(
         [string[]]$Content,
         [string]$LogFile
     )
 
-
+    # Always write to console for visibility
+    $Content | ForEach-Object { Write-Host $_ }
 
     $targets = @()
     if ($script:LanrenLogFiles) {
@@ -128,19 +124,21 @@ function Write-OutputLine {
                 if ($dir -and -not (Test-Path $dir)) {
                     New-Item -ItemType Directory -Path $dir -Force | Out-Null
                 }
-                $text | Out-File -FilePath $t -Encoding Default -Force
+                # Use Append to support streaming logs
+                $text | Out-File -FilePath $t -Encoding Default -Append
             }
         }
-    } else {
-        $Content | ForEach-Object { Write-Output $_ }
     }
 }
+
+Write-OutputLine -Content ""
+Write-OutputLine -Content "=== Installing Visual Studio Code extensions ==="
+Write-OutputLine -Content ""
 
 function Test-ToolOnPath {
     param(
         [string]$CommandName
     )
-
 
     $cmd = Get-Command $CommandName -ErrorAction SilentlyContinue
     return [bool]$cmd
@@ -148,8 +146,7 @@ function Test-ToolOnPath {
 
 try {
     if (-not (Test-ToolOnPath -CommandName "code")) {
-        $lines += "VS Code CLI 'code' not found on PATH. Skipping extension installation."
-        Write-OutputLine -Content $lines -LogFile $CaptureLogFile
+        Write-OutputLine -Content "VS Code CLI 'code' not found on PATH. Skipping extension installation." -LogFile $CaptureLogFile
         Exit-WithWait 1
     }
 
@@ -174,22 +171,20 @@ try {
 
     foreach ($ext in $extensions) {
         try {
-            $lines += "Installing VS Code extension: $ext"
-            code --install-extension $ext --force | Out-Null
+            Write-OutputLine -Content "Installing VS Code extension: $ext" -LogFile $CaptureLogFile
+            # Capture output to show progress
+            $output = code --install-extension $ext --force 2>&1
+            if ($output) {
+                $outStr = $output | Out-String -Stream
+                Write-OutputLine -Content $outStr -LogFile $CaptureLogFile
+            }
         } catch {
-            $lines += "Failed to install VS Code extension ${ext}: $($_.Exception.Message)"
+            Write-OutputLine -Content "Failed to install VS Code extension ${ext}: $($_.Exception.Message)" -LogFile $CaptureLogFile
         }
     }
 } catch {
-    $lines += "Error installing VS Code extensions: $($_.Exception.Message)"
-    Write-OutputLine -Content $lines -LogFile $CaptureLogFile
+    Write-OutputLine -Content "Error installing VS Code extensions: $($_.Exception.Message)" -LogFile $CaptureLogFile
     Exit-WithWait 1
-}
-
-Write-OutputLine -Content $lines -LogFile $CaptureLogFile
-if ($NoExit) {
-    Write-Host "Press any key to exit..."
-    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
 }
 
 Exit-WithWait 0

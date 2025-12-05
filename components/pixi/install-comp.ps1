@@ -237,9 +237,4 @@ try {
 }
 
 Write-OutputLine -Content $lines -LogFile $CaptureLogFile
-if ($NoExit) {
-    Write-Host "Press any key to exit..."
-    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
-}
-
 Exit-WithWait 0
