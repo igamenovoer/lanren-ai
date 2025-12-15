@@ -398,3 +398,10 @@ FodyWeavers.xsd
 *.sln.iml
 .idea/
 /tmp
+
+# Lanren AI generated output
+/lanren-cache/
+/.pkgs-cache/
+
+# Local-only secrets / host credentials
+.host-credentials.md
