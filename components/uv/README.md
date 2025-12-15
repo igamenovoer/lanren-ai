@@ -48,3 +48,18 @@ Our `install-comp` script will:
 - This updates `%APPDATA%\uv\uv.toml` to set `index-url`.
 - `cn` defaults to `aliyun`.
 
+## Linux/macOS (POSIX) scripts
+
+- Install:
+  ```bash
+  cd components/uv
+  sh ./install-comp.sh --dry-run
+  sh ./install-comp.sh
+  ```
+- Configure PyPI mirror:
+  ```bash
+  sh ./config-comp.sh --mirror cn
+  sh ./config-comp.sh --mirror tuna
+  sh ./config-comp.sh --mirror official
+  ```
+- Note: `config-comp.sh` writes `~/.config/uv/uv.toml` (or `$XDG_CONFIG_HOME/uv/uv.toml`).

@@ -38,3 +38,13 @@ Our `install-comp` script for this component will:
   ```
 - Our automation still prefers `uv` for isolation and reproducibility, but `pip`/`pipx` remain valid manual alternatives.
 
+## Linux/macOS (POSIX) scripts
+
+- Install via `uv tool`:
+  ```bash
+  cd components/markitdown
+  sh ./install-comp.sh --dry-run
+  sh ./install-comp.sh
+  # optional:
+  # sh ./install-comp.sh --from-official
+  ```

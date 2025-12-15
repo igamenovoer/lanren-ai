@@ -27,3 +27,18 @@ Once installed, you can use `aria2c` from the command line.
 ```powershell
 aria2c https://example.com/file.zip
 ```
+
+## Linux/macOS (POSIX) scripts
+
+- Install:
+  ```bash
+  cd components/aria2
+  sh ./install-comp.sh --dry-run
+  sh ./install-comp.sh --accept-defaults
+  # optional:
+  # sh ./install-comp.sh --proxy "http://127.0.0.1:7890"
+  ```
+- Notes:
+  - On macOS it prefers Homebrew (`brew install aria2`) when available.
+  - On Linux it prefers your package manager when available.
+  - Logs are written under `./lanren-cache/logs/aria2/` (or `$LRAI_MASTER_OUTPUT_DIR`).

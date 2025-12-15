@@ -56,3 +56,21 @@ Besides `install-comp.ps1` / `install-comp.bat`, this component exposes several 
   - 安装 Tavily MCP、写入 Tavily API Key，并在 Claude Code 的 MCP 配置里注册 `tavily` 服务器，为 Claude 提供联网搜索 / 新闻检索等能力。  
 
 通常的使用顺序是：先运行 `install-comp.bat` 安装 Claude Code CLI，再按需运行上述配置脚本。  
+
+## Linux/macOS (POSIX) scripts
+
+- Install:
+  ```bash
+  cd components/claude-code-cli
+  sh ./install-comp.sh --dry-run
+  sh ./install-comp.sh
+  ```
+- Helpers:
+  ```bash
+  sh ./config-skip-login.sh
+  sh ./config-custom-api-key.sh --alias-name claude-kimi --base-url "https://example.com/anthropic/"
+  sh ./config-context7-mcp.sh
+  sh ./config-tavily-mcp.sh
+  ```
+- Notes:
+  - `config-custom-api-key.sh` writes a launcher under `~/.local/bin/<alias>` and stores the key in plain text.

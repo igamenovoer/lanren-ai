@@ -52,3 +52,17 @@ Our `install-comp` script will:
   - `-MirrorPypi`: Overrides PyPI mirror (`cn`, `official`, `aliyun`, `tuna`).
 - Configuration is saved to `%APPDATA%\pixi\config.toml` via `pixi config`.
 
+## Linux/macOS (POSIX) scripts
+
+- Install:
+  ```bash
+  cd components/pixi
+  sh ./install-comp.sh --dry-run
+  sh ./install-comp.sh
+  ```
+- Configure mirrors:
+  ```bash
+  sh ./config-comp.sh --mirror cn
+  sh ./config-comp.sh --mirror-conda tuna --mirror-pypi aliyun
+  sh ./config-comp.sh --mirror official
+  ```

@@ -29,3 +29,10 @@ Our `install-comp` script for winget will:
 
 - Winget docs: https://learn.microsoft.com/windows/package-manager/winget/
 
+## Linux/macOS (POSIX) scripts
+
+- `winget` is Windows-only. On Linux/macOS, `install-comp.sh` is a no-op placeholder:
+  ```bash
+  cd components/winget
+  sh ./install-comp.sh --dry-run
+  ```

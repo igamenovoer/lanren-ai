@@ -42,3 +42,14 @@ Our `install-comp` script for Git will:
   - https://gitforwindows.org/
 - When `--from-official` is used, the installer skips domestic mirrors and pulls directly from the official site or via winget.
 
+## Linux/macOS (POSIX) scripts
+
+- Install:
+  ```bash
+  cd components/git
+  sh ./install-comp.sh --dry-run
+  sh ./install-comp.sh --accept-defaults
+  ```
+- Notes:
+  - On macOS it prefers Homebrew (`brew install git`) when available.
+  - On Linux it prefers your package manager when available.

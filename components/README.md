@@ -21,6 +21,13 @@ Each component subdirectory contains a PowerShell installer script.
 - **Important:** Before running any `.ps1` scripts, please run the `<workspace>/enable-ps1-permission.bat` script once to allow PowerShell script execution.
 - Per-component installers should be **self-contained** within their own directory under `components/` and must not depend on scripts located elsewhere in the repository (for example, do not call helpers under `scripts\` from `components\claude-code-cli\install-comp.ps1`; instead, embed the necessary logic directly in the per-component installer).
 
+Each component also has a POSIX shell counterpart for Linux/macOS:
+- Install: `install-comp.sh`
+- Configure: `config-comp.sh` (when applicable)
+- Notes:
+  - Prefer running with `--dry-run` first if you want to verify behavior without modifying the system.
+  - Logs go to `./lanren-cache/` by default (or `$LRAI_MASTER_OUTPUT_DIR`).
+
 Where possible, component subdirectories should expose the following standard tools:
 
 ### `install-comp.ps1`

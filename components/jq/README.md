@@ -33,3 +33,14 @@ This component installs [`jq`](https://jqlang.org/), a lightweight and flexible 
 - Windows installers/binaries:
   - https://github.com/jqlang/jq/releases
 
+## Linux/macOS (POSIX) scripts
+
+- Install:
+  ```bash
+  cd components/jq
+  sh ./install-comp.sh --dry-run
+  sh ./install-comp.sh --accept-defaults
+  ```
+- Notes:
+  - On macOS it prefers Homebrew (`brew install jq`) when available.
+  - Otherwise it installs the official GitHub release binary into `~/.local/bin/jq`.

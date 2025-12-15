@@ -28,3 +28,14 @@ This component installs [`yq`](https://github.com/mikefarah/yq), a lightweight a
   - https://github.com/mikefarah/yq
   - https://github.com/mikefarah/yq/releases
 
+## Linux/macOS (POSIX) scripts
+
+- Install:
+  ```bash
+  cd components/yq
+  sh ./install-comp.sh --dry-run
+  sh ./install-comp.sh --accept-defaults
+  ```
+- Notes:
+  - On macOS it prefers Homebrew (`brew install yq`) when available.
+  - Otherwise it installs the official GitHub release binary into `~/.local/bin/yq`.

@@ -68,3 +68,21 @@ In addition to `config-custom-api-key`, this directory also contains helpers for
   - Installs the Tavily MCP server via Bun (`bun add -g tavily-mcp`)、提示输入 Tavily API Key，并在 `config.toml` 中写入 `[mcp_servers.tavily]` 配置，使用 `bunx tavily-mcp@latest` 启动 MCP 服务器，为 Codex 提供联网搜索 / 新闻检索等能力。  
 
 通常流程是：先通过 `install-comp.bat` 安装 Codex CLI，再视需要运行 `config-custom-api-key.bat`、`config-context7-mcp.bat`、`config-tavily-mcp.bat` 做进一步配置。  
+
+## Linux/macOS (POSIX) scripts
+
+- Install:
+  ```bash
+  cd components/codex-cli
+  sh ./install-comp.sh --dry-run
+  sh ./install-comp.sh
+  ```
+- Configure custom endpoint + skip login (creates `~/.local/bin/<alias>` and stores the key in plain text):
+  ```bash
+  sh ./config-custom-api-key.sh --alias-name codex-openai-proxy --base-url "https://api.example.com/v1"
+  ```
+- MCP servers (Bun + `bunx`):
+  ```bash
+  sh ./config-context7-mcp.sh
+  sh ./config-tavily-mcp.sh
+  ```

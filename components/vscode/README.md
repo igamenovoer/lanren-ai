@@ -38,3 +38,14 @@ This installs VS Code via the official Microsoft installer.
 
 - Official download:
   - https://code.visualstudio.com/Download
+
+## Linux/macOS (POSIX) scripts
+
+- Install VS Code + extensions:
+  ```bash
+  cd components/vscode
+  sh ./install-comp.sh --dry-run
+  sh ./install-comp.sh --accept-defaults
+  ```
+- Notes:
+  - Installing the `code` CLI may require a manual step on macOS: VS Code → Command Palette → “Shell Command: Install 'code' command in PATH”.

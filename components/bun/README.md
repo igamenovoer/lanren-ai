@@ -57,3 +57,23 @@ Bun’s own installer ensures both `bun` and `bunx` are set up correctly and tha
   .\config-comp.ps1 -Mirror official
   ```
 - This updates `~/.bunfig.toml` to use `registry.npmmirror.com` (for `cn`) or `registry.npmjs.org` (for `official`).
+
+## Linux/macOS (POSIX) scripts
+
+- Install:
+  ```bash
+  cd components/bun
+  sh ./install-comp.sh --dry-run
+  sh ./install-comp.sh
+  # optional:
+  # sh ./install-comp.sh --proxy "http://127.0.0.1:7890"
+  ```
+- Configure registry mirror:
+  ```bash
+  sh ./config-comp.sh --mirror cn
+  # or
+  sh ./config-comp.sh --mirror official
+  ```
+- Notes:
+  - The installer uses Bun’s official install script (`https://bun.sh/install`).
+  - `config-comp.sh` updates `~/.bunfig.toml`.

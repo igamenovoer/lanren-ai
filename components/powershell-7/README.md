@@ -32,3 +32,14 @@ Our `install-comp` script will:
 - GitHub releases:
   - https://github.com/PowerShell/PowerShell/releases
 
+## Linux/macOS (POSIX) scripts
+
+- Install:
+  ```bash
+  cd components/powershell-7
+  sh ./install-comp.sh --dry-run
+  sh ./install-comp.sh
+  ```
+- Notes:
+  - On macOS (Apple Silicon) it prefers Homebrew when available.
+  - On Linux it installs a user-scoped `pwsh` and symlinks `~/.local/bin/pwsh`.

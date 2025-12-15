@@ -51,3 +51,17 @@ Our `install-comp` script will:
 - Package manager docs:
   - https://nodejs.org/en/download/package-manager
 
+## Linux/macOS (POSIX) scripts
+
+- Install:
+  ```bash
+  cd components/nodejs
+  sh ./install-comp.sh --dry-run
+  sh ./install-comp.sh --accept-defaults
+  ```
+- Configure npm registry mirror:
+  ```bash
+  sh ./config-comp.sh --mirror cn
+  # or
+  sh ./config-comp.sh --mirror official
+  ```
