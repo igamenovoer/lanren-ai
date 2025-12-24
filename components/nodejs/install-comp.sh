@@ -143,24 +143,90 @@ lr_download() {
   lr_die "Neither curl nor wget is available for downloading: $url"
 }
 
-lr_sudo() {
-  # Echo a sudo prefix if needed/available.
-  if [ "$(id -u 2>/dev/null || echo 1)" -eq 0 ]; then
-    echo ""
+lr_user_prefix() {
+  # Prefer user-space installs.
+  # Default: ~/.local (respects XDG if set).
+  if [ -n "${XDG_DATA_HOME:-}" ]; then
+    # XDG_DATA_HOME typically is ~/.local/share; keep tools in ~/.local/bin.
+    echo "${HOME}/.local"
     return 0
   fi
-  if lr_has_cmd sudo; then
-    echo "sudo"
-    return 0
+  echo "${HOME}/.local"
+}
+
+lr_node_platform() {
+  os="$1"
+  arch="$2"
+  case "$os" in
+    linux)
+      case "$arch" in
+        amd64) echo "linux-x64" ;;
+        arm64) echo "linux-arm64" ;;
+        *) lr_die "Unsupported CPU architecture for Node.js tarball: $arch" ;;
+      esac
+      ;;
+    macos)
+      case "$arch" in
+        amd64) echo "darwin-x64" ;;
+        arm64) echo "darwin-arm64" ;;
+        *) lr_die "Unsupported CPU architecture for Node.js tarball: $arch" ;;
+      esac
+      ;;
+    *) lr_die "Unsupported OS for Node.js tarball install: $os" ;;
+  esac
+}
+
+lr_node_latest_lts_version() {
+  # Prints something like: v20.11.1
+  index_url="$1"
+  index_path="$2"
+
+  # IMPORTANT: This function is often called via command substitution $(...).
+  # Do not print logs to stdout here; only print the version.
+  if [ "${LR_DRY_RUN:-0}" -eq 1 ]; then
+    return 1
   fi
-  echo ""
+
+  # Download without lr_run/lr_log to avoid stdout pollution.
+  {
+    printf '%s\n' "+ (silent) download $index_url -> $index_path"
+    if lr_has_cmd curl; then
+      curl -fsSL "$index_url" -o "$index_path"
+    elif lr_has_cmd wget; then
+      wget -q "$index_url" -O "$index_path"
+    else
+      printf '%s\n' "ERROR: Neither curl nor wget is available for downloading: $index_url"
+      exit 1
+    fi
+  } >>"$LR_LOG_FILE" 2>&1
+
+  if [ -n "${LR_CAPTURE_LOG_FILE:-}" ]; then
+    {
+      printf '%s\n' "+ (silent) download $index_url -> $index_path"
+    } >>"$LR_CAPTURE_LOG_FILE" 2>&1 || true
+  fi
+
+  # Extract the first release where "lts" is not false.
+  # This is a best-effort JSON scrape to keep dependencies minimal.
+  awk '
+    BEGIN { v = "" }
+    /"version"[[:space:]]*:[[:space:]]*"v[0-9]+\.[0-9]+\.[0-9]+"/ {
+      line=$0
+      sub(/.*"version"[[:space:]]*:[[:space:]]*"/, "", line)
+      sub(/".*/, "", line)
+      v=line
+    }
+    /"lts"[[:space:]]*:/ {
+      if (v != "" && $0 !~ /false/) { print v; exit 0 }
+    }
+  ' "$index_path"
 }
 
 usage() {
   cat <<'EOF'
 Usage: ./install-comp.sh [options]
 
-Install Node.js (LTS preferred) on Linux/macOS.
+Install Node.js (LTS preferred) on Linux/macOS in user-space (no sudo).
 
 Options:
   --proxy URL               HTTP/HTTPS proxy for downloads/package managers
@@ -209,58 +275,74 @@ if lr_has_cmd node && [ "$force" -ne 1 ]; then
 fi
 
 os="$(lr_os)"
-sudo_prefix="$(lr_sudo)"
+arch="$(lr_arch)"
 installed=0
 
-if [ "$os" = "macos" ]; then
-  if lr_has_cmd brew; then
-    if [ "$force" -eq 1 ]; then
-      lr_run brew reinstall node && installed=1 || installed=0
-    else
-      lr_run brew install node && installed=1 || installed=0
-    fi
-  else
-    lr_warn "Homebrew not found; cannot auto-install Node.js on macOS."
-  fi
-elif [ "$os" = "linux" ]; then
-  if lr_has_cmd apt-get; then
-    setup_url="https://deb.nodesource.com/setup_lts.x"
-    setup_path="$LR_PKG_DIR/nodesource-setup_lts.x.sh"
+prefix="$(lr_user_prefix)"
+bin_dir="$prefix/bin"
+opt_dir="$prefix/opt"
+mkdir -p "$bin_dir" "$opt_dir"
 
-    lr_log "Preparing NodeSource LTS repo bootstrap script..."
-    lr_download "$setup_url" "$setup_path"
-    lr_run chmod +x "$setup_path" || true
+node_platform="$(lr_node_platform "$os" "$arch")"
 
-    if [ -n "$sudo_prefix" ]; then
-      lr_run "$sudo_prefix" apt-get update || true
-      if [ "$accept_defaults" -eq 1 ]; then
-        lr_run "$sudo_prefix" apt-get install -y ca-certificates curl gnupg || true
-      else
-        lr_run "$sudo_prefix" apt-get install ca-certificates curl gnupg || true
-      fi
-
-      lr_log "Running NodeSource setup (LTS)..."
-      lr_run "$sudo_prefix" bash "$setup_path" || true
-
-      if [ "$accept_defaults" -eq 1 ]; then
-        lr_run "$sudo_prefix" apt-get install -y nodejs && installed=1 || installed=0
-      else
-        lr_run "$sudo_prefix" apt-get install nodejs && installed=1 || installed=0
-      fi
-    else
-      lr_run apt-get update || true
-      lr_run bash "$setup_path" || true
-      if [ "$accept_defaults" -eq 1 ]; then
-        lr_run apt-get install -y nodejs && installed=1 || installed=0
-      else
-        lr_run apt-get install nodejs && installed=1 || installed=0
-      fi
-    fi
-  else
-    lr_warn "apt-get not found; cannot auto-install Node.js on this Linux distro."
-  fi
+if [ "$from_official" -eq 1 ]; then
+  dist_base="https://nodejs.org/dist"
 else
-  lr_warn "Unsupported OS: $os"
+  # Mirrors are useful for CN networks; this mirror follows upstream layout.
+  dist_base="https://mirrors.tuna.tsinghua.edu.cn/nodejs-release"
+fi
+
+if [ "$dry_run" -eq 1 ]; then
+  lr_log "Dry-run: would install latest Node.js LTS tarball (no sudo)."
+  lr_log "- Platform: $node_platform"
+  lr_log "- Prefix: $prefix"
+  lr_log "- Would resolve LTS from: $dist_base/index.json"
+  lr_log "- Would extract into: $opt_dir/node-<version>-$node_platform"
+  lr_log "- Would symlink into: $bin_dir (node/npm/npx/corepack)"
+  lr_log "Dry-run complete (no changes made)."
+  exit 0
+fi
+
+index_url="$dist_base/index.json"
+index_path="$LR_PKG_DIR/node-index.json"
+lr_log "Fetching Node.js release index to resolve latest LTS..."
+node_version="$(lr_node_latest_lts_version "$index_url" "$index_path" 2>/dev/null || true)"
+
+if [ -z "$node_version" ]; then
+  lr_warn "Could not resolve latest LTS version from index.json."
+  lr_warn "You can re-run with --from-official, or install manually from the URLs below."
+else
+  tar_name="node-$node_version-$node_platform.tar.gz"
+  tar_url="$dist_base/$node_version/$tar_name"
+  tar_path="$LR_PKG_DIR/$tar_name"
+  install_dir="$opt_dir/node-$node_version-$node_platform"
+
+  lr_log "Installing Node.js $node_version ($node_platform) to user-space: $install_dir"
+
+  if [ "$force" -eq 1 ] && [ -d "$install_dir" ]; then
+    lr_log "Removing existing install (force enabled): $install_dir"
+    lr_run rm -rf "$install_dir" || true
+  fi
+
+  if [ ! -d "$install_dir" ]; then
+    lr_download "$tar_url" "$tar_path"
+    lr_run mkdir -p "$install_dir" || true
+    # Strip the leading directory from the tarball (node-vX.Y.Z-<platform>/...)
+    lr_run tar -xzf "$tar_path" -C "$install_dir" --strip-components=1 && installed=1 || installed=0
+  else
+    lr_log "Install directory already exists; skipping extract. Use --force to reinstall."
+    installed=1
+  fi
+
+  if [ "$installed" -eq 1 ]; then
+    lr_log "Linking node/npm/npx/corepack into: $bin_dir"
+    lr_run ln -sf "$install_dir/bin/node" "$bin_dir/node" || true
+    lr_run ln -sf "$install_dir/bin/npm" "$bin_dir/npm" || true
+    lr_run ln -sf "$install_dir/bin/npx" "$bin_dir/npx" || true
+    if [ -x "$install_dir/bin/corepack" ]; then
+      lr_run ln -sf "$install_dir/bin/corepack" "$bin_dir/corepack" || true
+    fi
+  fi
 fi
 
 if [ "$installed" -eq 1 ] && lr_has_cmd node; then
@@ -270,11 +352,10 @@ fi
 
 lr_log ""
 lr_log "Manual installation guidance:"
-if [ "$from_official" -ne 1 ]; then
-  lr_log "- China mirror for Node.js releases: https://mirrors.tuna.tsinghua.edu.cn/nodejs-release/"
-fi
+lr_log "- This script prefers user-space installs (no sudo). Ensure \"$prefix/bin\" is on PATH."
+lr_log "  Example (bash/zsh): export PATH=\"$prefix/bin:\$PATH\""
 lr_log "- Official downloads: https://nodejs.org/en/download"
-lr_log "- Linux (recommended): use your distro packages or NodeSource LTS (https://github.com/nodesource/distributions)."
-lr_log "- macOS (Apple Silicon): brew install node"
+lr_log "- Official dist index (for latest LTS): https://nodejs.org/dist/index.json"
+lr_log "- China mirror (same layout): https://mirrors.tuna.tsinghua.edu.cn/nodejs-release/"
 lr_log ""
 lr_die "Node.js installation did not complete successfully."
