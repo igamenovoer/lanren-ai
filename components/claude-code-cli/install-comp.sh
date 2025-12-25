@@ -205,6 +205,9 @@ lr_log ""
 lr_set_proxy_env "$proxy"
 [ "$accept_defaults" -eq 1 ] && lr_log "Using --accept-defaults (no-op for this installer)."
 
+# Prefer user-space Node.js installs from this repo's node component.
+export PATH="${HOME}/.local/bin:${PATH:-}"
+
 if ! lr_has_cmd node; then
   lr_die "Node.js is not available on PATH. Install Node.js first (components/nodejs/install-comp.sh)."
 fi
@@ -231,6 +234,12 @@ else
   sudo_prefix="$(lr_sudo)"
   use_sudo=0
   npm_prefix="$(npm prefix -g 2>/dev/null || true)"
+  npm_global_bin_dir=""
+  [ -n "$npm_prefix" ] && npm_global_bin_dir="$npm_prefix/bin"
+  # Make the npm global bin dir discoverable for the remainder of this script.
+  if [ -n "$npm_global_bin_dir" ]; then
+    export PATH="$npm_global_bin_dir:${PATH:-}"
+  fi
   if [ -n "$npm_prefix" ] && [ ! -w "$npm_prefix" ] && [ -n "$sudo_prefix" ]; then
     use_sudo=1
     lr_log "Global npm prefix is not writable ($npm_prefix); using sudo for global install."
@@ -253,6 +262,16 @@ else
   elif [ "$install_rc" -ne 0 ]; then
     lr_die "npm failed to install $package_name (exit code $install_rc)."
   fi
+
+  # For user-space Node installs, the npm global bin dir is typically not on PATH.
+  # Link `claude` into ~/.local/bin so it is available alongside node/npm.
+  user_bin_dir="${HOME}/.local/bin"
+  if [ -n "$npm_global_bin_dir" ] && [ -x "$npm_global_bin_dir/claude" ]; then
+    mkdir -p "$user_bin_dir" || true
+    lr_log "Linking claude into: $user_bin_dir"
+    lr_run ln -sf "$npm_global_bin_dir/claude" "$user_bin_dir/claude" || true
+    export PATH="$user_bin_dir:${PATH:-}"
+  fi
 fi
 
 if lr_has_cmd claude; then
@@ -265,8 +284,14 @@ fi
 lr_log ""
 lr_log "Configuring Claude Code to skip onboarding..."
 
-if ! lr_has_cmd claude; then
-  lr_die "Claude Code CLI ('claude') is not on PATH. Ensure your global npm bin directory is on PATH."
+# Resolve claude binary, even if PATH is not refreshed yet.
+claude_cmd=""
+if lr_has_cmd claude; then
+  claude_cmd="claude"
+fi
+
+if [ -z "$claude_cmd" ]; then
+  lr_die "Claude Code CLI ('claude') was not found after installation. Ensure your global npm bin directory is on PATH."
 fi
 
 config_file="${HOME:-}/.claude.json"

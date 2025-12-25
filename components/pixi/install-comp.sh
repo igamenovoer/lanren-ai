@@ -233,8 +233,20 @@ if [ "$installed" -ne 1 ]; then
   lr_run sh "$installer_path" || lr_die "pixi installer script failed."
 fi
 
-if ! lr_has_cmd pixi; then
-  lr_die "pixi installation completed, but 'pixi' is not on PATH."
+# pixi's official installer installs into ~/.pixi/bin by default.
+pixi_bin_dir="${HOME}/.pixi/bin"
+export PATH="$pixi_bin_dir:${PATH:-}"
+
+if [ -x "$pixi_bin_dir/pixi" ]; then
+  pixi_ver="$("$pixi_bin_dir/pixi" --version 2>/dev/null || true)"
+  if [ -n "$pixi_ver" ]; then
+    lr_log "pixi installed successfully: $pixi_ver"
+    exit 0
+  fi
 fi
 
-lr_log "pixi installed successfully."
+if ! lr_has_cmd pixi; then
+  lr_die "pixi installation completed, but 'pixi' is not on PATH (missing $pixi_bin_dir on PATH)."
+fi
+
+lr_log "pixi installed successfully: $(pixi --version 2>/dev/null || true)"
