@@ -160,8 +160,7 @@ usage() {
   cat <<'EOF'
 Usage: ./config-tavily-mcp.sh [options]
 
-Install the Tavily MCP server (npm) and configure it for Claude Code CLI
-(user scope) using:
+Configure the Tavily MCP server for Claude Code CLI (user scope) using:
   claude mcp add-json -s user tavily '<json>'
 
 Options:
@@ -194,14 +193,19 @@ lr_init_component_log "$component_name" "$capture_log_file" "$dry_run"
 lr_log "=== Configure Tavily MCP for Claude Code (user scope) ==="
 lr_log ""
 
-if ! lr_has_cmd node; then
-  lr_die "Node.js is not available on PATH. Install Node.js first."
-fi
-if ! lr_has_cmd npm; then
-  lr_die "npm is not available on PATH. Install Node.js (with npm) first."
-fi
 if ! lr_has_cmd claude; then
   lr_die "Claude Code CLI ('claude') is not on PATH. Install it first."
+fi
+
+# Choose a runner to launch the MCP server (no global install required).
+# Preference on Linux/macOS: npx > bunx
+runner=""
+if lr_has_cmd npx; then
+  runner="npx"
+elif lr_has_cmd bunx; then
+  runner="bunx"
+else
+  lr_die "No suitable runner found. Install bun (bunx) or Node.js (npx) first."
 fi
 
 if [ -z "$api_key" ]; then
@@ -225,28 +229,22 @@ if [ -z "$api_key" ]; then
   lr_die "Tavily API key cannot be empty."
 fi
 
-package_name="tavily-mcp"
-lr_log "Installing Tavily MCP server globally via npm: $package_name"
-
-sudo_prefix="$(lr_sudo)"
-use_sudo=0
-npm_prefix="$(npm prefix -g 2>/dev/null || true)"
-if [ -n "$npm_prefix" ] && [ ! -w "$npm_prefix" ] && [ -n "$sudo_prefix" ]; then
-  use_sudo=1
-  lr_log "Global npm prefix is not writable ($npm_prefix); using sudo for global install."
-fi
-
-if [ "$use_sudo" -eq 1 ]; then
-  lr_run "$sudo_prefix" npm install -g "$package_name" || lr_die "npm failed to install $package_name."
-else
-  lr_run npm install -g "$package_name" || lr_die "npm failed to install $package_name."
-fi
+package_name="tavily-mcp@latest"
+lr_log "Configuring Tavily MCP using runner: $runner ($package_name)"
 
 scope="user"
 mcp_name="tavily"
 
 lr_log "Building JSON configuration..."
-json="$(node -e 'console.log(JSON.stringify({type:"stdio",command:"tavily-mcp",args:[],env:{TAVILY_API_KEY:process.argv[1]}}))' "$api_key")"
+if ! lr_has_cmd node; then
+  lr_die "Node.js is required to build JSON config. Install Node.js (or run with an existing JSON string)."
+fi
+
+if [ "$runner" = "npx" ]; then
+  json="$(node -e 'console.log(JSON.stringify({type:"stdio",command:process.argv[1],args:["-y",process.argv[2]],env:{TAVILY_API_KEY:process.argv[3]}}))' "$runner" "$package_name" "$api_key")"
+else
+  json="$(node -e 'console.log(JSON.stringify({type:"stdio",command:process.argv[1],args:[process.argv[2]],env:{TAVILY_API_KEY:process.argv[3]}}))' "$runner" "$package_name" "$api_key")"
+fi
 
 lr_log "Removing existing '$mcp_name' server in scope '$scope' (if any)..."
 lr_run claude mcp remove -s "$scope" "$mcp_name" || true

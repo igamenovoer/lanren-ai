@@ -160,9 +160,11 @@ usage() {
   cat <<'EOF'
 Usage: ./config-context7-mcp.sh [options]
 
-Install the Context7 MCP server (npm) and configure it for Claude Code CLI
-(user scope) via:
-  claude mcp add -s user context7 context7-mcp
+Configure the Context7 MCP server for Claude Code CLI (user scope).
+
+By default this uses a runner (bunx preferred, otherwise npx) so you don't
+need a global install:
+  claude mcp add-json -s user context7 '<json>'
 
 Options:
   --dry-run                 Print what would change, without installing/configuring
@@ -190,32 +192,30 @@ lr_init_component_log "$component_name" "$capture_log_file" "$dry_run"
 lr_log "=== Configure Context7 MCP for Claude Code (user scope) ==="
 lr_log ""
 
-if ! lr_has_cmd node; then
-  lr_die "Node.js is not available on PATH. Install Node.js first."
-fi
-if ! lr_has_cmd npm; then
-  lr_die "npm is not available on PATH. Install Node.js (with npm) first."
-fi
 if ! lr_has_cmd claude; then
   lr_die "Claude Code CLI ('claude') is not on PATH. Install it first."
 fi
 
-package_name="@upstash/context7-mcp"
-lr_log "Ensuring Context7 MCP server is available via npm: $package_name"
-
-sudo_prefix="$(lr_sudo)"
-use_sudo=0
-npm_prefix="$(npm prefix -g 2>/dev/null || true)"
-if [ -n "$npm_prefix" ] && [ ! -w "$npm_prefix" ] && [ -n "$sudo_prefix" ]; then
-  use_sudo=1
-  lr_log "Global npm prefix is not writable ($npm_prefix); using sudo for global install."
-fi
-
-if [ "$use_sudo" -eq 1 ]; then
-  lr_run "$sudo_prefix" npm install -g "$package_name" || lr_warn "npm global install failed; npx may still work."
+# Choose a runner to launch the MCP server (no global install required).
+# Preference on Linux/macOS: npx > bunx
+runner=""
+runner_kind=""
+if lr_has_cmd npx; then
+  runner="npx"
+  runner_kind="node"
+elif lr_has_cmd bunx; then
+  runner="bunx"
+  runner_kind="bun"
 else
-  lr_run npm install -g "$package_name" || lr_warn "npm global install failed; npx may still work."
+  lr_die "No suitable runner found. Install bun (bunx) or Node.js (npx) first."
 fi
+
+if [ "$runner_kind" = "node" ] && ! lr_has_cmd node; then
+  lr_die "Node.js is required for npx, but node is not available on PATH."
+fi
+
+package_name="@upstash/context7-mcp@latest"
+lr_log "Configuring Context7 MCP using runner: $runner ($package_name)"
 
 scope="user"
 mcp_name="context7"
@@ -223,7 +223,18 @@ mcp_name="context7"
 lr_log "Removing existing '$mcp_name' server in scope '$scope' (if any)..."
 lr_run claude mcp remove -s "$scope" "$mcp_name" || true
 
-lr_log "Adding '$mcp_name' server in scope '$scope'..."
-lr_run claude mcp add -s "$scope" "$mcp_name" "context7-mcp" || lr_die "Failed to add Context7 MCP server."
+lr_log "Building JSON configuration..."
+if ! lr_has_cmd node; then
+  lr_die "Node.js is required to build JSON config. Install Node.js (or run with an existing JSON string)."
+fi
+
+if [ "$runner" = "npx" ]; then
+  json="$(node -e 'console.log(JSON.stringify({type:"stdio",command:process.argv[1],args:["-y",process.argv[2]],env:{}}))' "$runner" "$package_name")"
+else
+  json="$(node -e 'console.log(JSON.stringify({type:"stdio",command:process.argv[1],args:[process.argv[2]],env:{}}))' "$runner" "$package_name")"
+fi
+
+lr_log "Adding '$mcp_name' server in scope '$scope' via add-json..."
+lr_run_masked "claude mcp add-json -s $scope $mcp_name <json>" claude mcp add-json -s "$scope" "$mcp_name" "$json" || lr_die "Failed to add Context7 MCP server."
 
 lr_log "Context7 MCP server has been configured. Verify with: claude mcp list"
