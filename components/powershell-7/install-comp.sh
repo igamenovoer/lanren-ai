@@ -23,7 +23,21 @@ lr_arch() {
 }
 
 lr_has_cmd() {
-  command -v "$1" >/dev/null 2>&1
+  cmd="${1-}"
+  [ -n "$cmd" ] || return 1
+
+  # Primary: respect existing PATH.
+  command -v "$cmd" >/dev/null 2>&1 && return 0
+
+  # Secondary: try common user bin dirs for non-login shells.
+  for d in "$HOME/.local/bin" "$HOME/bin" "$HOME/.pixi/bin" "$HOME/.bun/bin"; do
+    if [ -x "$d/$cmd" ]; then
+      export PATH="$d:${PATH:-}"
+      return 0
+    fi
+  done
+
+  return 1
 }
 
 lr_shell_quote() {
