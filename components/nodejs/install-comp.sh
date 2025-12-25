@@ -345,9 +345,23 @@ else
   fi
 fi
 
-if [ "$installed" -eq 1 ] && lr_has_cmd node; then
-  lr_log "Node.js installed successfully: $(node --version 2>/dev/null || true)"
-  exit 0
+if [ "$installed" -eq 1 ]; then
+  # The install prefers user-space ($prefix/bin). That directory may not be on PATH
+  # for non-interactive shells, so validate using the expected symlink first.
+  export PATH="$bin_dir:${PATH:-}"
+
+  if [ -x "$bin_dir/node" ]; then
+    node_ver="$("$bin_dir/node" --version 2>/dev/null || true)"
+    if [ -n "$node_ver" ]; then
+      lr_log "Node.js installed successfully: $node_ver"
+      exit 0
+    fi
+  fi
+
+  if lr_has_cmd node; then
+    lr_log "Node.js installed successfully: $(node --version 2>/dev/null || true)"
+    exit 0
+  fi
 fi
 
 lr_log ""
@@ -358,4 +372,8 @@ lr_log "- Official downloads: https://nodejs.org/en/download"
 lr_log "- Official dist index (for latest LTS): https://nodejs.org/dist/index.json"
 lr_log "- China mirror (same layout): https://mirrors.tuna.tsinghua.edu.cn/nodejs-release/"
 lr_log ""
+if [ "$installed" -eq 1 ] && [ -e "$bin_dir/node" ]; then
+  lr_die "Node.js appears installed, but 'node' is not discoverable on PATH (missing $prefix/bin on PATH)."
+fi
+
 lr_die "Node.js installation did not complete successfully."
